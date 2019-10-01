@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29318.209
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RateMapSeveritySaber", "RateMapSeveritySaber\RateMapSeveritySaber.csproj", "{F819CF40-91CF-4065-ACED-687633821B82}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F819CF40-91CF-4065-ACED-687633821B82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F819CF40-91CF-4065-ACED-687633821B82}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F819CF40-91CF-4065-ACED-687633821B82}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F819CF40-91CF-4065-ACED-687633821B82}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F106C0E7-CA55-4DE8-AF1D-A6EEBFB48062}
+	EndGlobalSection
+EndGlobal

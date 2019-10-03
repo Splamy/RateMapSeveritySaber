@@ -8,13 +8,64 @@
 // @grant        GM_xmlhttpRequest
 // @run-at       document-body
 // @connect      splamy.de
+// @connect      jsdelivr.net
+// @require      https://cdn.jsdelivr.net/npm/chart.js@2.8.0
 // ==/UserScript==
 
+function detailsModal(graphData) {
+    let modalStyle = "width: 90%";
+    document.body.insertAdjacentHTML("afterbegin", `
+    <div class="modal is-active">
+        <div class="modal-background"></div>
+        <div class="modal-content" style="${modalStyle}">
+            <div class="box">
+                <canvas id="graph-canvas"></canvas>
+            </div>
+        </div>
+        <button class="modal-close is-large" aria-label="close"></button>
+    </div>
+    `);
+    document.querySelectorAll(".modal-background").forEach(elem => elem.addEventListener("click", closeModal));
+    document.querySelectorAll(".modal-close").forEach(elem => elem.addEventListener("click", closeModal));
+    let canvas = document.getElementById("graph-canvas");
+    canvas.style.height = "10vh";
+    let ctx = canvas.getContext("2d");
+    canvas.chart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: graphData.map(x => ""),
+            datasets: [{
+                label: "Difficulty",
+                backgroundColor: "rgb(255, 99, 132)",
+                borderColor: "rgb(255, 99, 132)",
+                data: graphData,
+                fill: false,
+                pointRadius: 0,
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+                xAxes: [{
+                    gridLines: {
+                        display: false,
+                    }
+                }]
+            }
+        }
+    });
+}
+
+function closeModal() {
+    document.querySelectorAll(".modal").forEach(elem => elem.remove());
+}
+
 /**
+ * @param {String} id
  * @param {HTMLElement} beatmapContentElement 
- * @param {Array<any>} difficultyMap 
+ * @param {Array<any>} maps 
  */
-function insertDifficulties(beatmapContentElement, maps) {
+function insertDifficulties(id, beatmapContentElement, maps) {
     maps.forEach(mapInfo => {
         let difficulty = mapInfo.difficulty.toLowerCase();
         if (difficulty === "expertplus") {
@@ -25,14 +76,17 @@ function insertDifficulties(beatmapContentElement, maps) {
         let maxDifficulty = formatNumber(mapInfo.maxDifficulty, 2);
 
         if (targetTag) {
+            let tagStyle = "cursor: hand";
             let ankhStyle = "margin-right: .5em; font-size: 1.5em";
+            let htmlId = `${difficulty}${id}`
             let tagHtml = `
-                <span class="tag is-${difficulty}" title="~Average Difficulty, ^Max Difficulty">
+                <span id="${htmlId}" class="tag is-${difficulty}" title="~Average Difficulty, ^Max Difficulty" style="${tagStyle}">
                     <b style="${ankhStyle}">☥</b>
                     <span style="margin-right: .8em">~${avgDifficulty}</span>
                 <span>^${maxDifficulty}</span>
             `;
             targetTag.insertAdjacentHTML("afterend", tagHtml);
+            document.querySelector("#" + htmlId).addEventListener("click", () => detailsModal(mapInfo.graph));
         } else {
             console.warn(`Didn't find tag!`);
         }
@@ -95,14 +149,15 @@ function fetch2(url) {
 
                 if (element.classList.contains("beatmap-result")) {
                     if (mut.previousSibling === null) {
+                        let id = element.querySelector(".stats li").innerText.split(" ")[0];
+
                         if (element.difficultyCache) {
-                            insertDifficulties(element, element.difficultyCache);
+                            insertDifficulties(id, element, element.difficultyCache);
                         } else {
-                            let id = element.querySelector(".stats li").innerText.split(" ")[0];
                             fetch2(`https://splamy.de/api/ramses/${id}`).then(response => {
                                 let json = JSON.parse(response);
                                 element.difficultyCache = json.maps;
-                                insertDifficulties(element, element.difficultyCache);
+                                insertDifficulties(id, element, element.difficultyCache);
                             });
                         }
                     }

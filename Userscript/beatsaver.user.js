@@ -12,14 +12,17 @@
 // @require      https://cdn.jsdelivr.net/npm/chart.js@2.8.0
 // ==/UserScript==
 
-function detailsModal(graphData) {
+function detailsModal(trackInfo, difficultyName, graphData) {
     let modalStyle = "width: 90%";
     document.body.insertAdjacentHTML("afterbegin", `
     <div class="modal is-active">
         <div class="modal-background"></div>
         <div class="modal-content" style="${modalStyle}">
             <div class="box">
-                <canvas id="graph-canvas"></canvas>
+                <div class="is-size-3">${trackInfo.title}</div>
+                <div>
+                    <canvas id="graph-canvas"></canvas>
+                </div>
             </div>
         </div>
         <button class="modal-close is-large" aria-label="close"></button>
@@ -35,7 +38,7 @@ function detailsModal(graphData) {
         data: {
             labels: graphData.map(x => ""),
             datasets: [{
-                label: "Difficulty",
+                label: difficultyName,
                 backgroundColor: "rgb(255, 99, 132)",
                 borderColor: "rgb(255, 99, 132)",
                 data: graphData,
@@ -65,7 +68,7 @@ function closeModal() {
  * @param {HTMLElement} beatmapContentElement 
  * @param {Array<any>} maps 
  */
-function insertDifficulties(id, beatmapContentElement, maps) {
+function insertDifficulties(trackInfo, beatmapContentElement, maps) {
     maps.forEach(mapInfo => {
         let difficulty = mapInfo.difficulty.toLowerCase();
         if (difficulty === "expertplus") {
@@ -76,9 +79,9 @@ function insertDifficulties(id, beatmapContentElement, maps) {
         let maxDifficulty = formatNumber(mapInfo.maxDifficulty, 2);
 
         if (targetTag) {
-            let tagStyle = "cursor: hand";
+            let tagStyle = "cursor: pointer";
             let ankhStyle = "margin-right: .5em; font-size: 1.5em";
-            let htmlId = `${difficulty}${id}`
+            let htmlId = `${difficulty}${trackInfo.id}`
             let tagHtml = `
                 <span id="${htmlId}" class="tag is-${difficulty}" title="~Average Difficulty, ^Max Difficulty" style="${tagStyle}">
                     <b style="${ankhStyle}">☥</b>
@@ -86,7 +89,7 @@ function insertDifficulties(id, beatmapContentElement, maps) {
                 <span>^${maxDifficulty}</span>
             `;
             targetTag.insertAdjacentHTML("afterend", tagHtml);
-            document.querySelector("#" + htmlId).addEventListener("click", () => detailsModal(mapInfo.graph));
+            document.querySelector("#" + htmlId).addEventListener("click", () => detailsModal(trackInfo, mapInfo.difficulty, mapInfo.graph));
         } else {
             console.warn(`Didn't find tag!`);
         }
@@ -149,15 +152,18 @@ function fetch2(url) {
 
                 if (element.classList.contains("beatmap-result")) {
                     if (mut.previousSibling === null) {
-                        let id = element.querySelector(".stats li").innerText.split(" ")[0];
+                        let trackInfo = {
+                            id: element.querySelector(".stats li").innerText.split(" ")[0],
+                            title: element.querySelector(".details > h1 > a").innerText,
+                        }
 
                         if (element.difficultyCache) {
-                            insertDifficulties(id, element, element.difficultyCache);
+                            insertDifficulties(trackInfo, element, element.difficultyCache);
                         } else {
-                            fetch2(`https://splamy.de/api/ramses/${id}`).then(response => {
+                            fetch2(`https://splamy.de/api/ramses/${trackInfo.id}`).then(response => {
                                 let json = JSON.parse(response);
                                 element.difficultyCache = json.maps;
-                                insertDifficulties(id, element, element.difficultyCache);
+                                insertDifficulties(trackInfo, element, element.difficultyCache);
                             });
                         }
                     }

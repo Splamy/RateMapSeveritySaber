@@ -2,12 +2,12 @@
 // @name         Cooles Beatsaver Script
 // @namespace    http://tampermonkey.net/
 // @version      0.1
-// @description  try to take over the world!
+// @description  Shows difficulty estimations of maps
 // @author       Asuro
-// @match        https://beatsaver.com/browse/*
+// @match        https://beatsaver.com/*
 // @grant        GM_xmlhttpRequest
 // @run-at       document-body
-// @connect      80d18138.ngrok.io
+// @connect      splamy.de
 // ==/UserScript==
 
 /**
@@ -99,7 +99,7 @@ function fetch2(url) {
                             insertDifficulties(element, element.difficultyCache);
                         } else {
                             let id = element.querySelector(".stats li").innerText.split(" ")[0];
-                            fetch2(`https://80d18138.ngrok.io/api/ramses/${id}`).then(response => {
+                            fetch2(`https://splamy.de/api/ramses/${id}`).then(response => {
                                 let json = JSON.parse(response);
                                 element.difficultyCache = json.maps;
                                 insertDifficulties(element, element.difficultyCache);

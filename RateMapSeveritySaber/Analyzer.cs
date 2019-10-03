@@ -1,50 +1,49 @@
-﻿using DeepSaber;
-using System;
-using System.Text;
+﻿using System;
 using System.Linq;
-using System.Drawing;
+using System.Text;
 using Vector2 = Math2D.FVector2D;
-using System.Collections.Generic;
 
 namespace RateMapSeveritySaber
 {
-	class Analyzer
+	public static class Analyzer
 	{
 		public static readonly Encoding Utf8 = new UTF8Encoding(false, false);
 
-		static void Main(string[] args)
+		public static Score AnalyzeMap(BSMap map)
 		{
-			var an = new Analyzer();
-			var maps = BSMapIO.Read(@"C:\beatsaber_song");
-			foreach (var map in maps)
+			if (map.Data.Notes.Count < 5)
 			{
-				Console.Write("Level {0}: ", map.MapInfo._difficultyRank);
-				if (map.Data.Notes.Count < 5)
-				{
-					Console.WriteLine("No enough notes");
-					continue;
-				}
-				an.AnalyzeMap(map);
+				return new Score { Avg = 0, Max = 0, Graph = Array.Empty<float>() };
 			}
 
-			Console.ReadLine();
-		}
-
-		public void AnalyzeMap(BSMap map)
-		{
 			var noDots = map.Data.Notes.Where(x => x.Direction != NoteDir.Dot).ToArray();
-			var reds = noDots.Where(n => n.Type == NoteColor.Red).ToArray();
-			var blues = noDots.Where(n => n.Type == NoteColor.Blue).ToArray();
+			var jsonRed = noDots.Where(n => n.Type == NoteColor.Red).ToArray();
+			var jsonBlue = noDots.Where(n => n.Type == NoteColor.Blue).ToArray();
 
-			var sRed = AnalyzeNotes(map, reds);
-			var sBlue = AnalyzeNotes(map, blues);
+			var scoredRed = AnalyzeNotes(map, jsonRed);
+			var scoredBlue = AnalyzeNotes(map, jsonBlue);
 
-			DrawImage(sRed, sBlue, reds, blues, $"beautiful_{map.MapInfo._difficultyRank}.png");
+			int len = (int)MathF.Ceiling(jsonRed.Concat(jsonBlue).Max(x => x.Time)) + 1;
 
-			Console.WriteLine("R: {0} B: {1}", sRed.Average(), sBlue.Average());
+			var timedRed = ConvertToTimed(scoredRed, jsonRed, len);
+			var timedBlue = ConvertToTimed(scoredBlue, jsonBlue, len);
+
+			var combined = new float[len];
+			for (int i = 0; i < len; i++)
+			{
+				int cnt = timedRed[i] > 0 && timedBlue[i] > 0 ? 2 : 1;
+				combined[i] = (timedRed[i] + timedBlue[i]) / cnt;
+			}
+
+			return new Score
+			{
+				Graph = combined,
+				Max = combined.Max(),
+				Avg = combined.Average(),
+			};
 		}
 
-		public float[] AnalyzeNotes(BSMap map, JsonNote[] notes)
+		public static float[] AnalyzeNotes(BSMap map, JsonNote[] notes)
 		{
 			var scores = new float[notes.Length];
 			for (int i = 0; i < notes.Length - 1; i++)
@@ -54,51 +53,24 @@ namespace RateMapSeveritySaber
 			return scores;
 		}
 
-		public void DrawImage(float[] red, float[] blue, JsonNote[] redJ, JsonNote[] blueJ, string name)
+		public static float[] ConvertToTimed(float[] notes, JsonNote[] notesJ, int len)
 		{
-			using var bitmap = new Bitmap((int)Math.Ceiling(redJ.Concat(blueJ).Max(x => x.Time)) + 1, (int)Math.Ceiling(red.Concat(blue).Max()) + 1);
-			bitmap.SetPixel(0, 0, Color.Green);
-			DrawPixels(bitmap, red, redJ, true);
-			DrawPixels(bitmap, blue, blueJ, false);
-			bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
-			bitmap.Save(name);
-		}
-
-		public void DrawPixels(Bitmap bitmap, float[] notes, JsonNote[] notesJ, bool red)
-		{
-			float[] timed = new float[bitmap.Width];
-
+			float[] timed = new float[len];
 			for (int i = 0; i < notes.Length; i++)
 			{
-				timed[(int)notesJ[i].Time] = notes[i];
+				int timeIndex = (int)notesJ[i].Time;
+				timed[timeIndex] = Math.Max(timed[timeIndex], notes[i]);
 			}
-
-			var smoo = new List<float>(timed[..4]);
-
-			for (int i = 5; i < timed.Length; i++)
-			{
-				smoo.RemoveAt(0);
-				smoo.Add(timed[i]);
-				var val = (int)smoo.Average();
-				//bitmap.SetPixel(i, (int)val, red ? Color.Red : Color.Blue);
-
-				for (int j = 0; j < val; j++)
-				{
-					if (bitmap.GetPixel(i, j).A == 0)
-						bitmap.SetPixel(i, j, red ? Color.Red : Color.Blue);
-					else
-						bitmap.SetPixel(i, j, Color.Purple);
-				}
-			}
+			return timed;
 		}
 
 		/// Score for note B
-		public float ScoreDistance(JsonNote noteA, JsonNote noteB, BSMap map)
+		public static float ScoreDistance(JsonNote noteA, JsonNote noteB, BSMap map)
 		{
-			Vector2 noteAStart = new Vector2(noteA.X, noteA.Y) + .5f + DirectionToVelocity(noteA.Direction) * -.5f;
-			Vector2 noteAEnd = new Vector2(noteA.X, noteA.Y) + .5f + DirectionToVelocity(noteA.Direction) * .5f;
-			Vector2 noteBStart = new Vector2(noteB.X, noteB.Y) + .5f + DirectionToVelocity(noteB.Direction) * -.5f;
-			Vector2 noteBEnd = new Vector2(noteB.X, noteB.Y) + .5f + DirectionToVelocity(noteB.Direction) * .5f;
+			Vector2 noteAStart = noteA.Position() + .5f + noteA.Rotation() * -.5f;
+			Vector2 noteAEnd = noteA.Position() + .5f + noteA.Rotation() * .5f;
+			Vector2 noteBStart = noteB.Position() + .5f + noteB.Rotation() * -.5f;
+			Vector2 noteBEnd = noteB.Position() + .5f + noteB.Rotation() * .5f;
 
 			Vector2 resetVec = noteBStart - noteAEnd;
 			Vector2 hitAVec = noteAEnd - noteAStart;
@@ -108,29 +80,46 @@ namespace RateMapSeveritySaber
 			if (totalHitDuration <= 0.001f)
 				return 0;
 
-			float scoreParts = 0;
+			float swingDist, swingRelAB, swingRelAReset = 0, swinRelBReset = 0;
 
-			scoreParts += resetVec.Length;
-			scoreParts += (hitAVec.Normalize() * hitBVec.Normalize() + 1) / 2;
+			swingDist = resetVec.Length;
+			swingRelAB = Relation(hitAVec, hitBVec);
 
 			if (resetVec.LengthSQ >= 0.001f)
 			{
-				scoreParts += (hitAVec.Normalize() * resetVec.Normalize() + 1) / 2;
-				scoreParts += (hitBVec.Normalize() * resetVec.Normalize() + 1) / 2;
+				swingRelAReset = Relation(hitAVec, resetVec);
+				swinRelBReset = Relation(hitBVec, resetVec);
 			}
 
+			float scoreParts = swingDist + swingRelAB + swingRelAReset + swinRelBReset;
 			float score = scoreParts / totalHitDuration;
 			if (float.IsNaN(score) || float.IsInfinity(score))
-				Console.WriteLine("Batman");
+				return 0; // TODO some kind of warning
 
 			return score;
 		}
 
-		public Vector2 DirectionToVelocity(NoteDir direction)
-		{
-			float sqrt2 = MathF.Sqrt(2f) / 2;
+		private static float Relation(Vector2 a, Vector2 b) => 1 - (a.Normalized * b.Normalized + 1) / 2;
+	}
 
-			return direction switch
+	internal static class BSMapExtensions
+	{
+		public static float RealTimeToBeatTime(this BSMap map, float time) => (time / 60) * map.Info._beatsPerMinute;
+		public static float BeatTimeToRealTime(this BSMap map, float time) => (time / map.Info._beatsPerMinute) * 60;
+
+		// https://github.com/Kylemc1413/MappingExtensions#precision-note-placement
+		public static Vector2 Position(this JsonNote note)
+			=> new Vector2(NoteValueToPos(note.X), NoteValueToPos(note.Y));
+
+		private static float NoteValueToPos(int num)
+			=> Math.Abs(num) >= 1000 ? (num - Math.Sign(num) * 1000) / 1000f : num;
+
+		private static readonly float sqrt2 = MathF.Sqrt(2f) / 2;
+
+		// https://github.com/Kylemc1413/MappingExtensions#360-degree-note-rotation
+		public static Vector2 Rotation(this JsonNote note)
+		{
+			return note.Direction switch
 			{
 				NoteDir.Up => new Vector2(0f, 1f),
 				NoteDir.Down => new Vector2(0f, -1f),
@@ -141,7 +130,21 @@ namespace RateMapSeveritySaber
 				NoteDir.DownLeft => new Vector2(-sqrt2, -sqrt2),
 				NoteDir.DownRight => new Vector2(-sqrt2, sqrt2),
 				NoteDir.Dot => new Vector2(0f, 0f), // TODO
+				var num when (int)num >= 1000 && (int)num <= 1360 => NoteRotationToVector((int)num),
+				_ => Vector2.Zero // Weird other stuff
 			};
 		}
+
+		private static Vector2 NoteRotationToVector(int num)
+			=> new Vector2(0, -1).Rotate((num - 1000) / 180f * MathF.PI);
+	}
+
+	public class Score
+	{
+		public float[] Graph { get; set; }
+		public float Avg { get; set; }
+		public float Max { get; set; }
+
+		public override string ToString() => $"~{Avg} ^{Max}";
 	}
 }

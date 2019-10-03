@@ -16,7 +16,6 @@ namespace Math2D
 #pragma warning restore CS0661
 	{
 		private const float HALF_PI = (float)(Math.PI / 2);
-		private const float TWO_PI = (float)(Math.PI * 2);
 
 		public SkalTyp X { get; }
 		public SkalTyp Y { get; }
@@ -112,6 +111,10 @@ namespace Math2D
 		/// <returns>The angle in radian. From 0 to 2pi.</returns>
 		public SkalTyp GetAngle() => (SkalTyp)(MathF.Atan2(Y, X) + HALF_PI); // TODO: fix
 
+		public FVector2D Rotate(float angle) => new FVector2D(
+			X * MathF.Cos(angle) + Y * MathF.Sin(angle),
+			X * MathF.Sin(angle) + Y * MathF.Cos(angle));
+
 		public SkalTyp Length => MathF.Sqrt(LengthSQ);
 
 		public SkalTyp LengthSQ => X * X + Y * Y;
@@ -131,7 +134,7 @@ namespace Math2D
 
 		public FVector2D Offset(FVector2D v1) => new FVector2D(X + v1.X, Y + v1.Y);
 
-		public FVector2D Normalize() => this / this.Length;
+		public FVector2D Normalized => this / this.Length;
 
 		public override string ToString() => $"(X:{X} Y:{Y})";
 	}

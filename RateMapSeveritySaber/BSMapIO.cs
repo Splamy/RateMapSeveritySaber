@@ -1,22 +1,23 @@
-﻿using Newtonsoft.Json;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.Serialization;
+using Utf8Json;
 
-namespace DeepSaber
+namespace RateMapSeveritySaber
 {
 	public class BSMapIO
 	{
 		public static List<BSMap> Read(string folder)
-		{
-			var infoFile = Path.Combine(folder, "info.dat");
+			=> Read(file => File.Open(Path.Combine(folder, file), FileMode.Open, FileAccess.Read, FileShare.Read));
 
+		public static List<BSMap> Read(Func<string, Stream> fileProvider)
+		{
 			JsonInfo info;
 
-			using (var fs = File.OpenRead(infoFile))
-			using (var sr = new StreamReader(fs))
+			using (var fs = fileProvider("info.dat"))
 			{
-				var json = sr.ReadToEnd();
-				info = JsonConvert.DeserializeObject<JsonInfo>(json);
+				info = JsonSerializer.Deserialize<JsonInfo>(fs);
 			}
 
 			var maps = new List<BSMap>();
@@ -25,21 +26,14 @@ namespace DeepSaber
 			{
 				foreach (var mapj in set._difficultyBeatmaps)
 				{
-					var mapFile = Path.Combine(folder, mapj._beatmapFilename);
-					using (var fs = File.OpenRead(mapFile))
-					using (var sr = new StreamReader(fs))
+					using var fs = fileProvider(mapj._beatmapFilename);
+					var map = JsonSerializer.Deserialize<JsonMap>(fs);
+					maps.Add(new BSMap
 					{
-						var json = sr.ReadToEnd();
-						var map = JsonConvert.DeserializeObject<JsonMap>(json);
-						maps.Add(new BSMap
-						{
-							Info = info,
-							MapInfo = mapj,
-							Data = map,
-							Folder = folder,
-							MusicFile = Path.Combine(folder, info._songFilename)
-						});
-					}
+						Info = info,
+						MapInfo = mapj,
+						Data = map,
+					});
 				}
 			}
 
@@ -52,21 +46,18 @@ namespace DeepSaber
 		public JsonInfo Info { get; set; }
 		public JsonInfoMap MapInfo { get; set; }
 		public JsonMap Data { get; set; }
-		public string MusicFile { get; set; }
-		public string Folder { get; set; }
-
-		public float RealTimeToBeatTime(float time) => (time / 60) * Info._beatsPerMinute;
-		public float BeatTimeToRealTime(float time) => (time / Info._beatsPerMinute) * 60;
 	}
 
 	public class JsonMap
 	{
-		[JsonProperty(PropertyName = "_version")]
+		//[JsonProperty(PropertyName = "_version")]
+		[DataMember(Name = "_version")]
 		public string Version { get; set; }
 		//public float[] _BPMChanges { get; set; }
 
 		//public List<object> _events { get; set; }
-		[JsonProperty(PropertyName = "_notes")]
+		//[JsonProperty(PropertyName = "_notes")]
+		[DataMember(Name = "_notes")]
 		public List<JsonNote> Notes { get; set; }
 		//public List<object> _obstacles { get; set; }
 		//public List<object> _bookmarks { get; set; }
@@ -74,15 +65,20 @@ namespace DeepSaber
 
 	public class JsonNote
 	{
-		[JsonProperty(PropertyName = "_time")]
+		//[JsonProperty(PropertyName = "_time")]
+		[DataMember(Name = "_time")]
 		public float Time { get; set; }
-		[JsonProperty(PropertyName = "_lineIndex")]
+		//[JsonProperty(PropertyName = "_lineIndex")]
+		[DataMember(Name = "_lineIndex")]
 		public int X { get; set; }
-		[JsonProperty(PropertyName = "_lineLayer")]
+		//[JsonProperty(PropertyName = "_lineLayer")]
+		[DataMember(Name = "_lineLayer")]
 		public int Y { get; set; }
-		[JsonProperty(PropertyName = "_type")]
+		//[JsonProperty(PropertyName = "_type")]
+		[DataMember(Name = "_type")]
 		public NoteColor Type { get; set; }
-		[JsonProperty(PropertyName = "_cutDirection")]
+		//[JsonProperty(PropertyName = "_cutDirection")]
+		[DataMember(Name = "_cutDirection")]
 		public NoteDir Direction { get; set; }
 	}
 
@@ -121,6 +117,7 @@ namespace DeepSaber
 	}
 	public class JsonInfoMap
 	{
+		public string _difficulty { get; set; }
 		public float _difficultyRank { get; set; }
 		public string _beatmapFilename { get; set; }
 		public float _noteJumpMovementSpeed { get; set; }

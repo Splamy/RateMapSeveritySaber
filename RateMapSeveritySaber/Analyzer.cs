@@ -11,19 +11,18 @@ namespace RateMapSeveritySaber
 
 		public static Score AnalyzeMap(BSMap map)
 		{
-			if (map.Data.Notes.Count < 5)
+			int len = (int)MathF.Ceiling(map.Data.Notes.Max(x => (float?)x.Time) ?? 0);
+
+			if (len == 0)
 			{
 				return new Score { Avg = 0, Max = 0, Graph = Array.Empty<float>() };
 			}
 
-			var noDots = map.Data.Notes.Where(x => x.Direction != NoteDir.Dot).ToArray();
-			var jsonRed = noDots.Where(n => n.Type == NoteColor.Red).ToArray();
-			var jsonBlue = noDots.Where(n => n.Type == NoteColor.Blue).ToArray();
+			var jsonRed = map.Data.Notes.Where(n => n.Type == NoteColor.Red).ToArray();
+			var jsonBlue = map.Data.Notes.Where(n => n.Type == NoteColor.Blue).ToArray();
 
 			var scoredRed = AnalyzeNotes(map, jsonRed);
 			var scoredBlue = AnalyzeNotes(map, jsonBlue);
-
-			int len = (int)MathF.Ceiling(jsonRed.Concat(jsonBlue).Max(x => x.Time)) + 1;
 
 			var timedRed = ConvertToTimed(scoredRed, jsonRed, len);
 			var timedBlue = ConvertToTimed(scoredBlue, jsonBlue, len);
@@ -59,6 +58,8 @@ namespace RateMapSeveritySaber
 			for (int i = 0; i < notes.Length; i++)
 			{
 				int timeIndex = (int)notesJ[i].Time;
+				if (timeIndex < 0 || timeIndex >= len)
+					continue;
 				timed[timeIndex] = Math.Max(timed[timeIndex], notes[i]);
 			}
 			return timed;
@@ -80,15 +81,18 @@ namespace RateMapSeveritySaber
 			if (totalHitDuration <= 0.001f)
 				return 0;
 
-			float swingDist, swingRelAB, swingRelAReset = 0, swinRelBReset = 0;
+			float swingDist, swingRelAB = 0, swingRelAReset = 0, swinRelBReset = 0;
 
 			swingDist = resetVec.Length;
-			swingRelAB = Relation(hitAVec, hitBVec);
+			if (hitAVec != Vector2.Zero && hitBVec != Vector2.Zero)
+				swingRelAB = Relation(hitAVec, hitBVec);
 
 			if (resetVec.LengthSQ >= 0.001f)
 			{
-				swingRelAReset = Relation(hitAVec, resetVec);
-				swinRelBReset = Relation(hitBVec, resetVec);
+				if (hitAVec != Vector2.Zero)
+					swingRelAReset = Relation(hitAVec, resetVec);
+				if (hitBVec != Vector2.Zero)
+					swinRelBReset = Relation(hitBVec, resetVec);
 			}
 
 			float scoreParts = swingDist + swingRelAB + swingRelAReset + swinRelBReset;

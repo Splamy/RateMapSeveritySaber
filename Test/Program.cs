@@ -13,24 +13,26 @@ namespace RateMapSeveritySaber
 	{
 		static void Main(string[] args)
 		{
-			const string path = @"E:\Games\SteamGames\SteamApps\common\Beat Saber\Beat Saber_Data\CustomLevels";
-			foreach (var mapFolder in Directory.EnumerateDirectories(path).Take(300))
+			//const string path = @"E:\Games\SteamGames\SteamApps\common\Beat Saber\Beat Saber_Data\CustomLevels";
+			//foreach (var mapFolder in Directory.EnumerateDirectories(path).Take(300))
 			{
-				//var sw = Stopwatch.StartNew();
-				var maps = BSMapIO.Read(Path.Combine(path, mapFolder));
+				//var mapPath = Path.Combine(path, mapFolder);
+				var mapPath = @"E:\Downloads\5e78";
+				var sw = Stopwatch.StartNew();
+				var maps = BSMapIO.Read(mapPath);
 				//Console.WriteLine("Parsing: {0}ms", sw.ElapsedMilliseconds);
 
 				foreach (var map in maps)
 				{
 					Console.Write("Level {0}: ", map.MapInfo._difficultyRank);
-					//sw.Restart();
+					sw.Restart();
 					var score = Analyzer.AnalyzeMap(map);
-					//Console.Write(" Score: {0} in {1}ms", score, sw.ElapsedMilliseconds);
+					Console.Write(" Score: {0} in {1}ms", score, sw.ElapsedMilliseconds);
 					Console.WriteLine();
 				}
 			}
 
-			//Console.ReadLine();
+			Console.ReadLine();
 		}
 
 		public static void DrawImage(float[] red, float[] blue, JsonNote[] redJ, JsonNote[] blueJ, string name)

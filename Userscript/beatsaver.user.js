@@ -31,7 +31,7 @@ function detailsModal(trackInfo, difficultyName, graphData) {
     document.querySelectorAll(".modal-background").forEach(elem => elem.addEventListener("click", closeModal));
     document.querySelectorAll(".modal-close").forEach(elem => elem.addEventListener("click", closeModal));
     let canvas = document.getElementById("graph-canvas");
-    canvas.style.height = "10vh";
+    canvas.style.height = "7em";
     let ctx = canvas.getContext("2d");
     canvas.chart = new Chart(ctx, {
         type: "line",
@@ -42,7 +42,7 @@ function detailsModal(trackInfo, difficultyName, graphData) {
                 backgroundColor: "rgb(255, 99, 132)",
                 borderColor: "rgb(255, 99, 132)",
                 data: graphData,
-                fill: false,
+                fill: true,
                 pointRadius: 0,
             }]
         },
@@ -150,11 +150,17 @@ function fetch2(url) {
                 /** @type {HTMLElement} */
                 let element = mut.target;
 
-                if (element.classList.contains("beatmap-result")) {
+                // .beatmap-result          => entry in hot/search/..
+                // div.container.has-footer => beatmap details page
+                if (element.classList.contains("beatmap-result") || element.matches("div.container.has-footer")) {
+                    if (element.classList.contains("ramses-matched"))
+                        return;
+                    element.classList.add("ramses-matched");
+
                     if (mut.previousSibling === null) {
                         let trackInfo = {
-                            id: element.querySelector(".stats li").innerText.split(" ")[0],
-                            title: element.querySelector(".details > h1 > a").innerText,
+                            id: element.querySelector(".right li").innerText.split(" ")[0],
+                            title: element.querySelector("h1").innerText,
                         }
 
                         if (element.difficultyCache) {

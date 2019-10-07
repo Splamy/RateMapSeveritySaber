@@ -152,7 +152,7 @@ function fetch2(url) {
 
                 // .beatmap-result          => entry in hot/search/..
                 // div.container.has-footer => beatmap details page
-                if (element.classList.contains("beatmap-result") || element.matches("div.container.has-footer")) {
+                if (element.classList.contains("beatmap-result") || element.querySelector(":scope > .detail-artwork")) {
                     if (element.classList.contains("ramses-matched"))
                         return;
                     element.classList.add("ramses-matched");

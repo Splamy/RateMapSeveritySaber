@@ -17,11 +17,11 @@ namespace Math2D
 	{
 		private const float HALF_PI = (float)(Math.PI / 2);
 
-		public SkalTyp X { get; }
-		public SkalTyp Y { get; }
+		public readonly SkalTyp X { get; }
+		public readonly SkalTyp Y { get; }
 
 #if SYSTEM_DRAWING_EXTENSION
-		public PointF p
+		public readonly PointF p
 		{
 			get
 			{
@@ -109,33 +109,33 @@ namespace Math2D
 
 		/// <summary>Gets the absolut angle of the Vector, starting from the global up-vector {0,-1} going clockwise.</summary>
 		/// <returns>The angle in radian. From 0 to 2pi.</returns>
-		public SkalTyp GetAngle() => (SkalTyp)(MathF.Atan2(Y, X) + HALF_PI); // TODO: fix
+		public readonly SkalTyp GetAngle() => (SkalTyp)(MathF.Atan2(Y, X) + HALF_PI); // TODO: fix
 
-		public FVector2D Rotate(float angle) => new FVector2D(
+		public readonly FVector2D Rotate(float angle) => new FVector2D(
 			X * MathF.Cos(angle) + Y * MathF.Sin(angle),
 			X * MathF.Sin(angle) + Y * MathF.Cos(angle));
 
-		public SkalTyp Length => MathF.Sqrt(LengthSQ);
+		public readonly SkalTyp Length => MathF.Sqrt(LengthSQ);
 
-		public SkalTyp LengthSQ => X * X + Y * Y;
+		public readonly SkalTyp LengthSQ => X * X + Y * Y;
 
-		public SkalTyp Distance(FVector2D v1) => MathF.Sqrt(DistanceSQ(v1));
+		public readonly SkalTyp Distance(FVector2D v1) => MathF.Sqrt(DistanceSQ(v1));
 
-		public SkalTyp DistanceSQ(FVector2D v1)
+		public readonly SkalTyp DistanceSQ(FVector2D v1)
 		{
 			SkalTyp x1 = X - v1.X;
 			SkalTyp y1 = Y - v1.Y;
 			return x1 * x1 + y1 * y1;
 		}
 
-		public FVector2D Offset(SkalTyp val) => new FVector2D(X + val, Y + val);
+		public readonly FVector2D Offset(SkalTyp val) => new FVector2D(X + val, Y + val);
 
-		public FVector2D Offset(SkalTyp x, SkalTyp y) => new FVector2D(X + x, Y + y);
+		public readonly FVector2D Offset(SkalTyp x, SkalTyp y) => new FVector2D(X + x, Y + y);
 
-		public FVector2D Offset(FVector2D v1) => new FVector2D(X + v1.X, Y + v1.Y);
+		public readonly FVector2D Offset(FVector2D v1) => new FVector2D(X + v1.X, Y + v1.Y);
 
-		public FVector2D Normalized => this / this.Length;
+		public readonly FVector2D Normalized => this / this.Length;
 
-		public override string ToString() => $"(X:{X} Y:{Y})";
+		public readonly override string ToString() => $"(X:{X} Y:{Y})";
 	}
 }

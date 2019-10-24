@@ -96,6 +96,9 @@ namespace RateMapSeveritySaber
 			}
 
 			float scoreParts = swingDist + swingRelAB + swingRelAReset + swinRelBReset;
+			// \frac{1}{\log_{2}x+1}
+			if (totalHitDuration < 1)
+				totalHitDuration = 1 / (float)(Math.Log(1 / totalHitDuration, 2) + 1);
 			float score = scoreParts / totalHitDuration;
 			if (float.IsNaN(score) || float.IsInfinity(score))
 				return 0; // TODO some kind of warning

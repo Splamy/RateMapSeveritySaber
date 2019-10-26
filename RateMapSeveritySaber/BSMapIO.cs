@@ -22,11 +22,11 @@ namespace RateMapSeveritySaber
 
 			var maps = new List<BSMap>();
 
-			foreach (var set in info._difficultyBeatmapSets)
+			foreach (var set in info.DifficultyBeatmapSets)
 			{
-				foreach (var mapj in set._difficultyBeatmaps)
+				foreach (var mapj in set.DifficultyBeatmaps)
 				{
-					using var fs = fileProvider(mapj._beatmapFilename);
+					using var fs = fileProvider(mapj.BeatmapFilename);
 					var map = JsonSerializer.Deserialize<JsonMap>(fs);
 					maps.Add(new BSMap
 					{
@@ -50,13 +50,11 @@ namespace RateMapSeveritySaber
 
 	public class JsonMap
 	{
-		//[JsonProperty(PropertyName = "_version")]
 		[DataMember(Name = "_version")]
 		public string Version { get; set; }
 		//public float[] _BPMChanges { get; set; }
 
 		//public List<object> _events { get; set; }
-		//[JsonProperty(PropertyName = "_notes")]
 		[DataMember(Name = "_notes")]
 		public List<JsonNote> Notes { get; set; }
 		//public List<object> _obstacles { get; set; }
@@ -65,19 +63,14 @@ namespace RateMapSeveritySaber
 
 	public class JsonNote
 	{
-		//[JsonProperty(PropertyName = "_time")]
 		[DataMember(Name = "_time")]
 		public float Time { get; set; }
-		//[JsonProperty(PropertyName = "_lineIndex")]
 		[DataMember(Name = "_lineIndex")]
 		public int X { get; set; }
-		//[JsonProperty(PropertyName = "_lineLayer")]
 		[DataMember(Name = "_lineLayer")]
 		public int Y { get; set; }
-		//[JsonProperty(PropertyName = "_type")]
 		[DataMember(Name = "_type")]
 		public NoteColor Type { get; set; }
-		//[JsonProperty(PropertyName = "_cutDirection")]
 		[DataMember(Name = "_cutDirection")]
 		public NoteDir Direction { get; set; }
 	}
@@ -88,7 +81,7 @@ namespace RateMapSeveritySaber
 		Blue = 1,
 	}
 
-	public enum NoteDir // TODO sort
+	public enum NoteDir
 	{
 		Up = 0,
 		Down = 1,
@@ -103,23 +96,34 @@ namespace RateMapSeveritySaber
 
 	public class JsonInfo
 	{
-		public string _songName { get; set; }
-		public float _beatsPerMinute { get; set; }
-		public float _songTimeOffset { get; set; }
-		public string _songFilename { get; set; }
-		public JsonInfoMapSets[] _difficultyBeatmapSets { get; set; }
+		[DataMember(Name = "_songName")]
+		public string SongName { get; set; }
+		[DataMember(Name = "_beatsPerMinute")]
+		public float BPM { get; set; }
+		[DataMember(Name = "_songTimeOffset")]
+		public float SongTimeOffset { get; set; }
+		[DataMember(Name = "_songFilename")]
+		public string SongFilename { get; set; }
+		[DataMember(Name = "_difficultyBeatmapSets")]
+		public JsonInfoMapSets[] DifficultyBeatmapSets { get; set; }
 
 	}
 	public class JsonInfoMapSets
 	{
-		public string _beatmapCharacteristicName { get; set; }
-		public JsonInfoMap[] _difficultyBeatmaps { get; set; }
+		[DataMember(Name = "_beatmapCharacteristicName")]
+		public string BeatmapCharacteristicName { get; set; }
+		[DataMember(Name = "_difficultyBeatmaps")]
+		public JsonInfoMap[] DifficultyBeatmaps { get; set; }
 	}
 	public class JsonInfoMap
 	{
-		public string _difficulty { get; set; }
-		public float _difficultyRank { get; set; }
-		public string _beatmapFilename { get; set; }
-		public float _noteJumpMovementSpeed { get; set; }
+		[DataMember(Name = "_difficulty")]
+		public string Difficulty { get; set; }
+		[DataMember(Name = "_difficultyRank")]
+		public float DifficultyRank { get; set; }
+		[DataMember(Name = "_beatmapFilename")]
+		public string BeatmapFilename { get; set; }
+		[DataMember(Name = "_noteJumpMovementSpeed")]
+		public float NoteJumpMovementSpeed { get; set; }
 	}
 }

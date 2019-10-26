@@ -1,7 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Vector2 = Math2D.FVector2D;
+using Math2D;
 
 namespace RateMapSeveritySaber
 {
@@ -18,14 +19,8 @@ namespace RateMapSeveritySaber
 				return new Score { Avg = 0, Max = 0, Graph = Array.Empty<float>() };
 			}
 
-			var jsonRed = map.Data.Notes.Where(n => n.Type == NoteColor.Red).ToArray();
-			var jsonBlue = map.Data.Notes.Where(n => n.Type == NoteColor.Blue).ToArray();
-
-			var scoredRed = AnalyzeNotes(map, jsonRed);
-			var scoredBlue = AnalyzeNotes(map, jsonBlue);
-
-			var timedRed = ConvertToTimed(scoredRed, jsonRed, len);
-			var timedBlue = ConvertToTimed(scoredBlue, jsonBlue, len);
+			var timedRed = ProcessColor(map, NoteColor.Red, len);
+			var timedBlue = ProcessColor(map, NoteColor.Blue, len);
 
 			var combined = new float[len];
 			for (int i = 0; i < len; i++)
@@ -42,64 +37,65 @@ namespace RateMapSeveritySaber
 			};
 		}
 
-		public static float[] AnalyzeNotes(BSMap map, JsonNote[] notes)
+		public static float[] ProcessColor(BSMap map, NoteColor color, int len)
 		{
-			var scores = new float[notes.Length];
-			for (int i = 0; i < notes.Length - 1; i++)
+			var json = map.Data.Notes.Where(n => n.Type == color).ToArray();
+			var clustered = ClusterNotes(map, json);
+			var scored = AnalyzeNotes(clustered);
+			return ConvertToTimed(scored, len);
+		}
+
+		public static ScoredCluster[] AnalyzeNotes(IList<Cluster> notes)
+		{
+			var scores = new ScoredCluster[notes.Count];
+			for (int i = 0; i < notes.Count - 1; i++)
 			{
-				scores[i] = ScoreDistance(notes[i], notes[i + 1], map);
+				scores[i] = new ScoredCluster(notes[i + 1], ScoreDistance(notes[i], notes[i + 1]));
 			}
 			return scores;
 		}
 
-		public static float[] ConvertToTimed(float[] notes, JsonNote[] notesJ, int len)
+		public static float[] ConvertToTimed(IList<ScoredCluster> notes, int len)
 		{
 			float[] timed = new float[len];
-			for (int i = 0; i < notes.Length; i++)
+			for (int i = 0; i < notes.Count; i++)
 			{
-				int timeIndex = (int)notesJ[i].Time;
+				int timeIndex = (int)notes[i].Cluster.BeatTime;
 				if (timeIndex < 0 || timeIndex >= len)
 					continue;
-				timed[timeIndex] = Math.Max(timed[timeIndex], notes[i]);
+				timed[timeIndex] = Math.Max(timed[timeIndex], notes[i].Score);
 			}
 			return timed;
 		}
 
+		/// <summary>
 		/// Score for note B
-		public static float ScoreDistance(JsonNote noteA, JsonNote noteB, BSMap map)
+		/// </summary>
+		public static float ScoreDistance(Cluster noteA, Cluster noteB)
 		{
-			Vector2 noteAStart = noteA.Position() + .5f + noteA.Rotation() * -.5f;
-			Vector2 noteAEnd = noteA.Position() + .5f + noteA.Rotation() * .5f;
-			Vector2 noteBStart = noteB.Position() + .5f + noteB.Rotation() * -.5f;
-			Vector2 noteBEnd = noteB.Position() + .5f + noteB.Rotation() * .5f;
+			Vector2 resetVec = noteB.Start - noteA.End;
 
-			Vector2 resetVec = noteBStart - noteAEnd;
-			Vector2 hitAVec = noteAEnd - noteAStart;
-			Vector2 hitBVec = noteBEnd - noteBStart;
-
-			float totalHitDuration = map.BeatTimeToRealTime(noteB.Time - noteA.Time);
-			if (totalHitDuration <= 0.001f)
+			var totalHitDuration = noteB.RealTime - noteA.RealTime;
+			if (totalHitDuration.TotalSeconds <= 0.001f)
 				return 0;
 
 			float swingDist, swingRelAB = 0, swingRelAReset = 0, swinRelBReset = 0;
 
 			swingDist = resetVec.Length;
-			if (hitAVec != Vector2.Zero && hitBVec != Vector2.Zero)
-				swingRelAB = Relation(hitAVec, hitBVec);
+			if (noteA.Hit != Vector2.Zero && noteB.Hit != Vector2.Zero)
+				swingRelAB = Relation(noteA.Hit, noteB.Hit);
 
 			if (resetVec.LengthSQ >= 0.001f)
 			{
-				if (hitAVec != Vector2.Zero)
-					swingRelAReset = Relation(hitAVec, resetVec);
-				if (hitBVec != Vector2.Zero)
-					swinRelBReset = Relation(hitBVec, resetVec);
+				if (noteA.Hit != Vector2.Zero)
+					swingRelAReset = Relation(noteA.Hit, resetVec);
+				if (noteB.Hit != Vector2.Zero)
+					swinRelBReset = Relation(noteB.Hit, resetVec);
 			}
 
 			float scoreParts = swingDist + swingRelAB + swingRelAReset + swinRelBReset;
-			// \frac{1}{\log_{2}x+1}
-			if (totalHitDuration < 1)
-				totalHitDuration = 1 / (float)(Math.Log(1 / totalHitDuration, 2) + 1);
-			float score = scoreParts / totalHitDuration;
+			float timeScaled = ExpToLin((float)totalHitDuration.TotalSeconds);
+			float score = scoreParts / timeScaled;
 			if (float.IsNaN(score) || float.IsInfinity(score))
 				return 0; // TODO some kind of warning
 
@@ -107,18 +103,115 @@ namespace RateMapSeveritySaber
 		}
 
 		private static float Relation(Vector2 a, Vector2 b) => 1 - (a.Normalized * b.Normalized + 1) / 2;
+
+		/// <summary>
+		/// scales the values between [0,1] linearly to log_2.
+		/// For example:
+		/// 1 => 1/1,
+		/// 0.5 => 1/2,
+		/// 0.25 => 1/3,
+		/// 0.125 => 1/4
+		/// </summary>
+		private static float ExpToLin(float value) =>
+			value >= 1
+			? value
+			: 1 / (MathF.Log(1 / value, 2) + 1);
+
+		/// <summary>
+		/// Will combine multiple notes into a big one.
+		/// </summary>
+		private static List<Cluster> ClusterNotes(BSMap map, IList<JsonNote> notes)
+		{
+			var clusters = new List<Cluster>(notes.Count);
+			var clusterBuild = new List<JsonNote>();
+
+			for (int i = 0; i < notes.Count; i++)
+			{
+				if (clusterBuild.Count > 0 &&
+					map.BeatTimeToRealTime(clusterBuild[0].Time) + Cluster.Treshold < map.BeatTimeToRealTime(notes[i].Time))
+				{
+					clusters.Add(Cluster.FromList(map, clusterBuild));
+					clusterBuild.Clear();
+				}
+
+				clusterBuild.Add(notes[i]);
+			}
+
+			if (clusterBuild.Count > 0)
+				clusters.Add(Cluster.FromList(map, clusterBuild));
+
+			return clusters;
+		}
+	}
+
+	/// <summary>
+	/// Note: A cluster can consist of one or more notes.
+	/// </summary>
+	public class Cluster
+	{
+		public Vector2 Start { get; }
+		public Vector2 End { get; }
+		public Vector2 Hit { get; }
+		public float HitCofactor { get; set; }
+		public float BeatTime { get; }
+		public TimeSpan RealTime { get; }
+
+		public static readonly TimeSpan Treshold = TimeSpan.FromMilliseconds(5);
+
+		public Cluster(Vector2 start, Vector2 end, float time, TimeSpan realTime)
+		{
+			Start = start;
+			End = end;
+			Hit = end - start;
+			BeatTime = time;
+			RealTime = realTime;
+		}
+
+		public static Cluster FromSingle(BSMap map, JsonNote note)
+		{
+			return new Cluster(
+				note.Position() + .5f + note.Rotation() * -.5f,
+				note.Position() + .5f + note.Rotation() * .5f,
+				note.Time,
+				map.BeatTimeToRealTime(note.Time)
+			);
+		}
+
+		public static Cluster FromList(BSMap map, IList<JsonNote> notes)
+		{
+			if (notes.Count == 0)
+				throw new InvalidOperationException();
+			if (notes.Count == 1)
+				return FromSingle(map, notes[0]);
+
+
+
+			return null;
+		}
+	}
+
+	public struct ScoredCluster
+	{
+		public Cluster Cluster { get; set; }
+		public float Score { get; set; }
+
+		public ScoredCluster(Cluster cluster, float score)
+		{
+			Cluster = cluster;
+			Score = score;
+		}
 	}
 
 	internal static class BSMapExtensions
 	{
-		public static float RealTimeToBeatTime(this BSMap map, float time) => (time / 60) * map.Info._beatsPerMinute;
-		public static float BeatTimeToRealTime(this BSMap map, float time) => (time / map.Info._beatsPerMinute) * 60;
+		public static float RealTimeToBeatTime(this BSMap map, TimeSpan time) => (float)(time.TotalMinutes * map.Info.BPM);
+		public static TimeSpan BeatTimeToRealTime(this BSMap map, float beat) => TimeSpan.FromMinutes(beat / map.Info.BPM);
 
 		// https://github.com/Kylemc1413/MappingExtensions#precision-note-placement
 		public static Vector2 Position(this JsonNote note)
-			=> new Vector2(NoteValueToPos(note.X), NoteValueToPos(note.Y));
+			=> new Vector2(ExtendedPositionToRealPosition(note.X), ExtendedPositionToRealPosition(note.Y));
 
-		private static float NoteValueToPos(int num)
+		private static float ExtendedPositionToRealPosition(int num)
 			=> Math.Abs(num) >= 1000 ? (num - Math.Sign(num) * 1000) / 1000f : num;
 
 		private static readonly float sqrt2 = MathF.Sqrt(2f) / 2;

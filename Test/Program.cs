@@ -1,11 +1,9 @@
-﻿using Math2D;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Numerics;
 
 namespace RateMapSeveritySaber
 {
@@ -24,7 +22,7 @@ namespace RateMapSeveritySaber
 
 				foreach (var map in maps)
 				{
-					Console.Write("Level {0}: ", map.MapInfo._difficultyRank);
+					Console.Write("Level {0}: ", map.MapInfo.DifficultyRank);
 					sw.Restart();
 					var score = Analyzer.AnalyzeMap(map);
 					Console.Write(" Score: {0} in {1}ms", score, sw.ElapsedMilliseconds);

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Runtime.Serialization;
 using Utf8Json;
 
@@ -8,6 +10,22 @@ namespace RateMapSeveritySaber
 {
 	public class BSMapIO
 	{
+		public static List<BSMap> ReadZip(string file)
+		{
+			using var fs = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+			return ReadZip(fs);
+		}
+
+		public static List<BSMap> ReadZip(Stream stream)
+		{
+			using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
+			return Read(file =>
+			{
+				var infoE = zip.GetEntry(file);
+				return infoE.Open();
+			});
+		}
+
 		public static List<BSMap> Read(string folder)
 			=> Read(file => File.Open(Path.Combine(folder, file), FileMode.Open, FileAccess.Read, FileShare.Read));
 
@@ -41,6 +59,7 @@ namespace RateMapSeveritySaber
 		}
 	}
 
+#pragma warning disable CS8618
 	public class BSMap
 	{
 		public JsonInfo Info { get; set; }
@@ -61,6 +80,7 @@ namespace RateMapSeveritySaber
 		//public List<object> _bookmarks { get; set; }
 	}
 
+	[DebuggerDisplay("{X} {Y} | {Direction} {Type}")]
 	public class JsonNote
 	{
 		[DataMember(Name = "_time")]
@@ -94,6 +114,7 @@ namespace RateMapSeveritySaber
 		Dot = 8,
 	}
 
+	[DebuggerDisplay("{SongName} ({DifficultyBeatmapSets.Length} maps) @{BPM}")]
 	public class JsonInfo
 	{
 		[DataMember(Name = "_songName")]
@@ -108,6 +129,8 @@ namespace RateMapSeveritySaber
 		public JsonInfoMapSets[] DifficultyBeatmapSets { get; set; }
 
 	}
+
+	[DebuggerDisplay("{BeatmapCharacteristicName} ({DifficultyBeatmaps.Length} maps)")]
 	public class JsonInfoMapSets
 	{
 		[DataMember(Name = "_beatmapCharacteristicName")]
@@ -115,6 +138,8 @@ namespace RateMapSeveritySaber
 		[DataMember(Name = "_difficultyBeatmaps")]
 		public JsonInfoMap[] DifficultyBeatmaps { get; set; }
 	}
+
+	[DebuggerDisplay("{Difficulty} (file: {BeatmapFilename})")]
 	public class JsonInfoMap
 	{
 		[DataMember(Name = "_difficulty")]
@@ -126,4 +151,6 @@ namespace RateMapSeveritySaber
 		[DataMember(Name = "_noteJumpMovementSpeed")]
 		public float NoteJumpMovementSpeed { get; set; }
 	}
+
+#pragma warning restore CS8618
 }

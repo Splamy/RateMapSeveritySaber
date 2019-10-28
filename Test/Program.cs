@@ -1,59 +1,49 @@
-﻿using Math2D;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Numerics;
+using Math2D;
 
 namespace RateMapSeveritySaber
 {
-	class Program
+	public class Program
 	{
-		static void Main(string[] args)
+		public static void Main(string[] args)
 		{
 			//const string path = @"E:\Games\SteamGames\SteamApps\common\Beat Saber\Beat Saber_Data\CustomLevels";
 			//foreach (var mapFolder in Directory.EnumerateDirectories(path).Take(300))
 			{
 				//var mapPath = Path.Combine(path, mapFolder);
-				var mapPath = @"E:\Downloads\5e78";
+				var mapPath = @"C:\Users\Splamy\Downloads\6a38 (MEGALOVANIA - puds).zip";
 				var sw = Stopwatch.StartNew();
-				var maps = BSMapIO.Read(mapPath);
+				var maps = BSMapIO.ReadZip(mapPath);
 				//Console.WriteLine("Parsing: {0}ms", sw.ElapsedMilliseconds);
 
 				foreach (var map in maps)
 				{
-					Console.Write("Level {0}: ", map.MapInfo._difficultyRank);
+					Console.Write("Level {0}: ", map.MapInfo.DifficultyRank);
 					sw.Restart();
 					var score = Analyzer.AnalyzeMap(map);
+					DrawImage(score, map.MapInfo.Difficulty + ".png");
 					Console.Write(" Score: {0} in {1}ms", score, sw.ElapsedMilliseconds);
 					Console.WriteLine();
 				}
 			}
-
-			Console.ReadLine();
 		}
 
-		public static void DrawImage(float[] red, float[] blue, JsonNote[] redJ, JsonNote[] blueJ, string name)
+		public static void DrawImage(Score score, string name)
 		{
-			using var bitmap = new Bitmap((int)MathF.Ceiling(redJ.Concat(blueJ).Max(x => x.Time)) + 1, (int)MathF.Ceiling(red.Concat(blue).Max()) + 1);
+			using var bitmap = new Bitmap(score.Graph.Length, (int)MathF.Ceiling(score.Graph.Max()) + 1);
 			bitmap.SetPixel(0, 0, Color.Green);
-			DrawPixels(bitmap, red, redJ, true);
-			DrawPixels(bitmap, blue, blueJ, false);
+			DrawPixels(bitmap, score.Graph);
 			bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
 			bitmap.Save(name);
 		}
 
-		public static void DrawPixels(Bitmap bitmap, float[] notes, JsonNote[] notesJ, bool red)
+		public static void DrawPixels(Bitmap bitmap, float[] timed)
 		{
-			float[] timed = new float[bitmap.Width];
-
-			for (int i = 0; i < notes.Length; i++)
-			{
-				timed[(int)notesJ[i].Time] = notes[i];
-			}
-
 			var smoo = new List<float>(timed[..4]);
 
 			for (int i = 5; i < timed.Length; i++)
@@ -65,10 +55,7 @@ namespace RateMapSeveritySaber
 
 				for (int j = 0; j < val; j++)
 				{
-					if (bitmap.GetPixel(i, j).A == 0)
-						bitmap.SetPixel(i, j, red ? Color.Red : Color.Blue);
-					else
-						bitmap.SetPixel(i, j, Color.Purple);
+					bitmap.SetPixel(i, j, Color.Orange);
 				}
 			}
 		}

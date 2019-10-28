@@ -12,6 +12,7 @@
     <RepositoryUrl>https://github.com/Splamy/RateMapSeveritySaber</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <Version>1.0.5</Version>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Vector2 = Math2D.FVector2D;
+using Math2D;
+using static RateMapSeveritySaber.BSMapExtensions;
 
 namespace RateMapSeveritySaber
 {
@@ -15,17 +17,11 @@ namespace RateMapSeveritySaber
 
 			if (len == 0)
 			{
-				return new Score { Avg = 0, Max = 0, Graph = Array.Empty<float>() };
+				return new Score(avg: 0, max: 0, graph: Array.Empty<float>());
 			}
 
-			var jsonRed = map.Data.Notes.Where(n => n.Type == NoteColor.Red).ToArray();
-			var jsonBlue = map.Data.Notes.Where(n => n.Type == NoteColor.Blue).ToArray();
-
-			var scoredRed = AnalyzeNotes(map, jsonRed);
-			var scoredBlue = AnalyzeNotes(map, jsonBlue);
-
-			var timedRed = ConvertToTimed(scoredRed, jsonRed, len);
-			var timedBlue = ConvertToTimed(scoredBlue, jsonBlue, len);
+			var timedRed = ProcessColor(map, NoteColor.Red, len);
+			var timedBlue = ProcessColor(map, NoteColor.Blue, len);
 
 			var combined = new float[len];
 			for (int i = 0; i < len; i++)
@@ -35,120 +31,109 @@ namespace RateMapSeveritySaber
 			}
 
 			return new Score
-			{
-				Graph = combined,
-				Max = combined.Max(),
-				Avg = combined.Average(),
-			};
+			(
+				avg: combined.Average(),
+				max: combined.Max(),
+				graph: combined
+			);
 		}
 
-		public static float[] AnalyzeNotes(BSMap map, JsonNote[] notes)
+		public static float[] ProcessColor(BSMap map, NoteColor color, int len)
 		{
-			var scores = new float[notes.Length];
-			for (int i = 0; i < notes.Length - 1; i++)
+			var json = map.Data.Notes.Where(n => n.Type == color).ToArray();
+			var hits = json.Select(x => Hit.FromSingle(map, x)).ToArray();
+			var clustered = ClusterNotes(hits);
+			var scored = AnalyzeNotes(clustered);
+			return ConvertToTimed(scored, len);
+		}
+
+		public static ScoredHit[] AnalyzeNotes(IList<Hit> notes)
+		{
+			if (notes.Count == 0)
+				return Array.Empty<ScoredHit>();
+
+			var scores = new ScoredHit[notes.Count];
+			scores[0] = new ScoredHit(notes[0], 0);
+			for (int i = 1; i < notes.Count; i++)
 			{
-				scores[i] = ScoreDistance(notes[i], notes[i + 1], map);
+				scores[i] = new ScoredHit(notes[i], ScoreDistance(notes[i - 1], notes[i]));
 			}
 			return scores;
 		}
 
-		public static float[] ConvertToTimed(float[] notes, JsonNote[] notesJ, int len)
+		public static float[] ConvertToTimed(IList<ScoredHit> notes, int len)
 		{
 			float[] timed = new float[len];
-			for (int i = 0; i < notes.Length; i++)
+			for (int i = 0; i < notes.Count; i++)
 			{
-				int timeIndex = (int)notesJ[i].Time;
+				int timeIndex = (int)notes[i].Cluster.BeatTime;
 				if (timeIndex < 0 || timeIndex >= len)
 					continue;
-				timed[timeIndex] = Math.Max(timed[timeIndex], notes[i]);
+				timed[timeIndex] = Math.Max(timed[timeIndex], notes[i].Score);
 			}
 			return timed;
 		}
 
+		/// <summary>
 		/// Score for note B
-		public static float ScoreDistance(JsonNote noteA, JsonNote noteB, BSMap map)
+		/// </summary>
+		public static float ScoreDistance(Hit noteA, Hit noteB)
 		{
-			Vector2 noteAStart = noteA.Position() + .5f + noteA.Rotation() * -.5f;
-			Vector2 noteAEnd = noteA.Position() + .5f + noteA.Rotation() * .5f;
-			Vector2 noteBStart = noteB.Position() + .5f + noteB.Rotation() * -.5f;
-			Vector2 noteBEnd = noteB.Position() + .5f + noteB.Rotation() * .5f;
+			Vector2 resetVec = noteB.Start - noteA.End;
 
-			Vector2 resetVec = noteBStart - noteAEnd;
-			Vector2 hitAVec = noteAEnd - noteAStart;
-			Vector2 hitBVec = noteBEnd - noteBStart;
-
-			float totalHitDuration = map.BeatTimeToRealTime(noteB.Time - noteA.Time);
-			if (totalHitDuration <= 0.001f)
+			var totalHitDuration = noteB.RealTime - noteA.RealTime;
+			if (totalHitDuration <= Hit.Treshold)
 				return 0;
 
-			float swingDist, swingRelAB = 0, swingRelAReset = 0, swinRelBReset = 0;
+			float resetSwingDist = resetVec.Length;
 
-			swingDist = resetVec.Length;
-			if (hitAVec != Vector2.Zero && hitBVec != Vector2.Zero)
-				swingRelAB = Relation(hitAVec, hitBVec);
+			float swing = noteB.Dir.Length + noteB.HitCoefficient;
 
-			if (resetVec.LengthSQ >= 0.001f)
+			float swingRelAB = 0, swingRelAReset = 0, swinRelBReset = 0;
+			if (!noteA.IsDot && !noteB.IsDot)
+				swingRelAB = Relation(noteA.Dir, noteB.Dir);
+
+			if (resetVec.LengthSQ >= Epsilon)
 			{
-				if (hitAVec != Vector2.Zero)
-					swingRelAReset = Relation(hitAVec, resetVec);
-				if (hitBVec != Vector2.Zero)
-					swinRelBReset = Relation(hitBVec, resetVec);
+				if (!noteA.IsDot)
+					swingRelAReset = Relation(noteA.Dir, resetVec);
+				if (!noteB.IsDot)
+					swinRelBReset = Relation(noteB.Dir, resetVec);
 			}
 
-			float scoreParts = swingDist + swingRelAB + swingRelAReset + swinRelBReset;
-			float score = scoreParts / totalHitDuration;
+			float scoreParts = resetSwingDist + swing + swingRelAB + swingRelAReset + swinRelBReset;
+			float timeScaled = InvExpToLin(Math.Min((float)totalHitDuration.TotalSeconds, 1));
+			float score = scoreParts / timeScaled;
 			if (float.IsNaN(score) || float.IsInfinity(score))
 				return 0; // TODO some kind of warning
 
 			return score;
 		}
 
-		private static float Relation(Vector2 a, Vector2 b) => 1 - (a.Normalized * b.Normalized + 1) / 2;
-	}
 
-	internal static class BSMapExtensions
-	{
-		public static float RealTimeToBeatTime(this BSMap map, float time) => (time / 60) * map.Info._beatsPerMinute;
-		public static float BeatTimeToRealTime(this BSMap map, float time) => (time / map.Info._beatsPerMinute) * 60;
-
-		// https://github.com/Kylemc1413/MappingExtensions#precision-note-placement
-		public static Vector2 Position(this JsonNote note)
-			=> new Vector2(NoteValueToPos(note.X), NoteValueToPos(note.Y));
-
-		private static float NoteValueToPos(int num)
-			=> Math.Abs(num) >= 1000 ? (num - Math.Sign(num) * 1000) / 1000f : num;
-
-		private static readonly float sqrt2 = MathF.Sqrt(2f) / 2;
-
-		// https://github.com/Kylemc1413/MappingExtensions#360-degree-note-rotation
-		public static Vector2 Rotation(this JsonNote note)
+		/// <summary>
+		/// Will combine multiple notes into a big one.
+		/// </summary>
+		private static List<Hit> ClusterNotes(IList<Hit> notes)
 		{
-			return note.Direction switch
+			var clusters = new List<Hit>(notes.Count);
+			var clusterBuild = new List<Hit>();
+
+			for (int i = 0; i < notes.Count; i++)
 			{
-				NoteDir.Up => new Vector2(0f, 1f),
-				NoteDir.Down => new Vector2(0f, -1f),
-				NoteDir.Left => new Vector2(-1f, 0f),
-				NoteDir.Right => new Vector2(1f, 0f),
-				NoteDir.UpLeft => new Vector2(sqrt2, -sqrt2),
-				NoteDir.UpRight => new Vector2(sqrt2, sqrt2),
-				NoteDir.DownLeft => new Vector2(-sqrt2, -sqrt2),
-				NoteDir.DownRight => new Vector2(-sqrt2, sqrt2),
-				NoteDir.Dot => new Vector2(0f, 0f), // TODO
-				var num when (int)num >= 1000 && (int)num <= 1360 => NoteRotationToVector((int)num),
-				_ => Vector2.Zero // Weird other stuff
-			};
+				if (clusterBuild.Count > 0 && clusterBuild[0].RealTime + Hit.Treshold < notes[i].RealTime)
+				{
+					clusters.Add(Hit.Cluster(clusterBuild));
+					clusterBuild.Clear();
+				}
+
+				clusterBuild.Add(notes[i]);
+			}
+
+			if (clusterBuild.Count > 0)
+				clusters.Add(Hit.Cluster(clusterBuild));
+
+			return clusters;
 		}
-
-		private static Vector2 NoteRotationToVector(int num)
-			=> new Vector2(0, -1).Rotate((num - 1000) / 180f * MathF.PI);
-	}
-
-	public class Score
-	{
-		public float[] Graph { get; set; }
-		public float Avg { get; set; }
-		public float Max { get; set; }
-
-		public override string ToString() => $"~{Avg} ^{Max}";
 	}
 }

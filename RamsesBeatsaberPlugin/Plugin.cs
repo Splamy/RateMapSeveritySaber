@@ -1,53 +1,59 @@
-﻿using IllusionPlugin;
+﻿using IPA;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Newtonsoft.Json;
 
 namespace Ramses
 {
-    public class RamsesPlugin : IPlugin
-    {
-        public string Name => "Ramses";
-        public string Version => "0.0.1";
-        public void OnApplicationStart()
-        {
-            Log("Ramses initialized.");
-            SceneManager.activeSceneChanged += OnActiveSceneChanged;
-            SceneManager.sceneLoaded += OnSceneLoaded;
-        }
+	public class RamsesPlugin : IBeatSaberPlugin
+	{
+		public string Name => "Ramses";
+		public string Version => "0.0.1";
+		public void OnApplicationStart()
+		{
+			Log("Ramses initialized.");
+		}
 
-        private void OnActiveSceneChanged(Scene arg0, Scene arg1) {
-            var levelDetailController = Resources.FindObjectsOfTypeAll<StandardLevelDetailViewController>().FirstOrDefault();
-            if (levelDetailController != null)
-            {
-                Log("LDC hooked");
-                levelDetailController.didPresentContentEvent += (ldc, _) => {
-                    Log($"Song name: {ldc?.selectedDifficultyBeatmap?.level?.songName}");
-                    Log($"ID: {ldc?.selectedDifficultyBeatmap?.level?.levelID}");
-                    Log($"Data: {Newtonsoft.Json.JsonConvert.SerializeObject(ldc?.selectedDifficultyBeatmap?.beatmapData?.beatmapLinesData?.Take(5))}");
-                };
-            }
-        }
+		public void OnActiveSceneChanged(Scene arg0, Scene arg1)
+		{
+			var levelDetailController = Resources.FindObjectsOfTypeAll<StandardLevelDetailViewController>().FirstOrDefault();
+			if (levelDetailController != null)
+			{
+				Log("LDC hooked");
+				levelDetailController.didPresentContentEvent += (ldc, _) =>
+				{
+					Log($"Song name: {ldc?.selectedDifficultyBeatmap?.level?.songName}");
+					Log($"ID: {ldc?.selectedDifficultyBeatmap?.level?.levelID}");
+					Log($"Data: {JsonConvert.SerializeObject(ldc?.selectedDifficultyBeatmap?.beatmapData?.beatmapLinesData?.Take(5))}");
+				};
+			}
+		}
 
-        private void OnSceneLoaded(Scene arg0, LoadSceneMode arg1) {}
+		public void OnSceneLoaded(Scene arg0, LoadSceneMode arg1) { }
 
-        public void OnApplicationQuit()
-        {
-            SceneManager.activeSceneChanged -= OnActiveSceneChanged;
-            SceneManager.sceneLoaded -= OnSceneLoaded;
-        }
+		public void OnSceneUnloaded(Scene scene)
+		{
+			throw new System.NotImplementedException();
+		}
 
-        public void OnLevelWasLoaded(int level) {}
+		public void OnApplicationQuit()
+		{
+			SceneManager.activeSceneChanged -= OnActiveSceneChanged;
+			SceneManager.sceneLoaded -= OnSceneLoaded;
+		}
 
-        public void OnLevelWasInitialized(int level) {}
+		public void OnLevelWasLoaded(int level) { }
 
-        public void OnUpdate() {}
+		public void OnLevelWasInitialized(int level) { }
 
-        public void OnFixedUpdate() {}
+		public void OnUpdate() { }
 
-        private void Log(string text)
-        {
-            Debug.Log($"-Ram- {text}");
-        }
-    }
+		public void OnFixedUpdate() { }
+
+		private void Log(string text)
+		{
+			Debug.Log($"-Ram- {text}");
+		}
+	}
 }

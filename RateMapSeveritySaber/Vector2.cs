@@ -8,7 +8,7 @@ using System.Drawing;
 namespace Math2D
 {
 	using SkalTyp = System.Single;
-	using static System.MathF;
+	using static Math2D.BSMath;
 
 #pragma warning disable CS0660
 #pragma warning disable CS0661
@@ -138,5 +138,26 @@ namespace Math2D
 		public readonly Vector2 Normalized => this / this.Length;
 
 		public readonly override string ToString() => $"({X} {Y})";
+	}
+}
+
+namespace Math2D
+{
+#if NETSTANDARD2_1
+	using M = System.MathF;
+#else
+	using M = System.Math;
+#endif
+
+	internal class BSMath
+	{
+		public const float PI = (float)M.PI;
+		public static float Sin(float x) => (float)M.Sin(x);
+		public static float Cos(float x) => (float)M.Cos(x);
+		public static float Atan2(float y, float x) => (float)M.Atan2(y, x);
+		public static float Sqrt(float x) => (float)M.Sqrt(x);
+		public static float Log(float x) => (float)M.Log(x);
+		public static float Log(float x, float y) => (float)M.Log(x, y);
+		public static float Ceiling(float x) => (float)M.Ceiling(x);
 	}
 }

@@ -64,7 +64,7 @@ namespace RateMapSeveritySaber
 			// our main hit vector.
 			// If not just swap the direction.
 			var angle = Vector2.GetAngle(mainHit, avgDir);
-			if (angle > MathF.PI / 2 && angle < MathF.PI / 2 * 3)
+			if (angle > BSMath.PI / 2 && angle < BSMath.PI / 2 * 3)
 			{
 				mainHit = -mainHit;
 				var tmp = end;
@@ -132,7 +132,7 @@ namespace RateMapSeveritySaber
 			if (sp == Vector2.Zero)
 				return 0;
 			var a = Vector2.GetAngle(dir, sp);
-			return dir.Length * MathF.Sin(a);
+			return dir.Length * BSMath.Sin(a);
 		}
 	}
 }

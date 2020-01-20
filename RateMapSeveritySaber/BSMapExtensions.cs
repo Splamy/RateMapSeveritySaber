@@ -15,7 +15,7 @@ namespace RateMapSeveritySaber
 		private static float ExtendedPositionToRealPosition(int num)
 			=> Math.Abs(num) >= 1000 ? (num - Math.Sign(num) * 1000) / 1000f : num;
 
-		private static readonly float sqrt2 = MathF.Sqrt(2f) / 2;
+		private static readonly float sqrt2 = BSMath.Sqrt(2f) / 2;
 
 		// https://github.com/Kylemc1413/MappingExtensions#360-degree-note-rotation
 		public static Vector2 Rotation(this JsonNote note)
@@ -37,7 +37,7 @@ namespace RateMapSeveritySaber
 		}
 
 		private static Vector2 NoteRotationToVector(int num)
-			=> new Vector2(0, -1).Rotate((num - 1000) / 180f * MathF.PI);
+			=> new Vector2(0, -1).Rotate((num - 1000) / 180f * BSMath.PI);
 
 		public static float Relation(Vector2 a, Vector2 b) => 1 - (a.Normalized * b.Normalized + 1) / 2;
 
@@ -52,7 +52,7 @@ namespace RateMapSeveritySaber
 		public static float InvExpToLin(float value) =>
 			value >= 1
 			? value
-			: 1 / (MathF.Log(1 / value, 2) + 1);
+			: 1 / (BSMath.Log(1 / value, 2) + 1);
 
 		/// <summary>
 		/// scales the values between [0,∞] to log₂.
@@ -65,7 +65,7 @@ namespace RateMapSeveritySaber
 		public static float ExpToLin(float value) =>
 			value <= 1
 			? value
-			: MathF.Log(value, 2);
+			: BSMath.Log(value, 2);
 
 		public const float Epsilon = 0.0001f;
 	}

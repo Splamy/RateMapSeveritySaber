@@ -13,7 +13,7 @@ namespace RateMapSeveritySaber
 
 		public static Score AnalyzeMap(BSMap map)
 		{
-			int len = (int)MathF.Ceiling(map.Data.Notes.Max(x => (float?)x.Time) ?? 0);
+			int len = (int)BSMath.Ceiling(map.Data.Notes.Max(x => (float?)x.Time) ?? 0);
 
 			if (len == 0)
 			{

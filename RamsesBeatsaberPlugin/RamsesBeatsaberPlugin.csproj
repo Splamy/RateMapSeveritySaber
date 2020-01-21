@@ -3,12 +3,18 @@
     <OutputType>Library</OutputType>
     <TargetFramework>net461</TargetFramework>
   </PropertyGroup>
+  <ItemGroup>
+    <None Remove="RateMapSeveritySaber.manifest.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="RateMapSeveritySaber.manifest.json" />
+  </ItemGroup>
   
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
 
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\lib\Assembly-CSharp.dll</HintPath>
+    <Reference Include="MainAssembly">
+      <HintPath>..\lib\MainAssembly.dll</HintPath>
     </Reference>
     <Reference Include="IPA.Loader">
       <HintPath>..\lib\IPA.Loader.dll</HintPath>
@@ -18,6 +24,9 @@
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>..\lib\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="HMUI">
+      <HintPath>..\lib\HMUI.dll</HintPath>
     </Reference>
   </ItemGroup>
   

@@ -1,0 +1,13 @@
+﻿{
+  "$schema": "https://raw.githubusercontent.com/beat-saber-modding-group/BSIPA-MetadataFileSchema/master/Schema.json",
+  "author": "Splamy & TheAsuro",
+  "description": "Rate my ass",
+  "gameVersion": "1.6.2",
+  "id": "RateMapSeveritySaber",
+  "name": "RateMapSeveritySaber",
+  "version": "1.0.5",
+  "dependsOn": {
+  },
+  "features": [
+  ]
+}

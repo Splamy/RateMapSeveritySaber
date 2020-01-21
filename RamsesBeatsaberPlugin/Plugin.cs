@@ -8,8 +8,9 @@ namespace Ramses
 {
 	public class RamsesPlugin : IBeatSaberPlugin
 	{
-		public string Name => "Ramses";
-		public string Version => "0.0.1";
+		public string Name => "RaMSeS";
+		public string Version => "1.0.5";
+
 		public void OnApplicationStart()
 		{
 			Log("Ramses initialized.");

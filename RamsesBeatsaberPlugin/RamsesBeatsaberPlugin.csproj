@@ -17,9 +17,6 @@
     <Reference Include="IPA.Loader">
       <HintPath>..\lib\IPA.Loader.dll</HintPath>
     </Reference>
-    <Reference Include="SongCore">
-      <HintPath>..\lib\SongCore.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\lib\UnityEngine.dll</HintPath>
     </Reference>
@@ -34,8 +31,4 @@
   <ItemGroup>
     <ProjectReference Include="..\RateMapSeveritySaber\RateMapSeveritySaber.csproj" />
   </ItemGroup>
-  
-  <Target Name="CopyCustomContent" AfterTargets="AfterBuild">
-    <!--<Copy SourceFiles="$(OutDir)\Ramses.dll" DestinationFolder="D:\Applications\Steam\steamapps\common\Beat Saber\Plugins" />-->
-  </Target>
 </Project>

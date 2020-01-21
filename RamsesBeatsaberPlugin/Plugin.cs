@@ -2,8 +2,6 @@
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Newtonsoft.Json;
-using RateMapSeveritySaber;
 
 namespace RamsesBeatsaberPlugin
 {
@@ -34,7 +32,8 @@ namespace RamsesBeatsaberPlugin
 						Log($"Song name: {level.songName}");
 						Log($"ID: {level.levelID}");
 
-						RamsesFileParser.GetRamsesScore(level, difficulty);
+						var score = RamsesFileParser.GetRamsesScore(level, difficulty);
+						Log($"avg Score: {score.Avg}");
 					}
 					else
 					{
@@ -56,7 +55,12 @@ namespace RamsesBeatsaberPlugin
 
 		public static void Log(string text)
 		{
-			Debug.Log($"-Ramses- {text}");
+			Debug.Log($"-RaMSeS- {text}");
+		}
+
+		public static void Log(object objectData)
+		{
+			Log(objectData.ToString());
 		}
 	}
 }

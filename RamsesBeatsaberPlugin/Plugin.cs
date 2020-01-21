@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Newtonsoft.Json;
 
-namespace Ramses
+namespace RamsesBeatsaberPlugin
 {
 	public class RamsesPlugin : IBeatSaberPlugin
 	{

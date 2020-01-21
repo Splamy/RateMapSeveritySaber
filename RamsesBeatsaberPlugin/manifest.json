@@ -1,14 +1,15 @@
 ﻿{
   "$schema": "https://raw.githubusercontent.com/beat-saber-modding-group/BSIPA-MetadataFileSchema/master/Schema.json",
   "author": "Splamy & TheAsuro",
-  "description": "Rate my ass",
+  "description": "Open map difficulty analyzier",
   "gameVersion": "1.6.2",
   "id": "RateMapSeveritySaber",
   "name": "RateMapSeveritySaber",
   "version": "1.0.5",
   "dependsOn": {
-    "SongCore": "^2.7.5"
+    "BS Utils": "^1.4.1"
   },
   "features": [
-  ]
+  ],
+  "loadAfter": [ ]
 }

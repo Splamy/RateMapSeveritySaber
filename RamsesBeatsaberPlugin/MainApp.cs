@@ -19,8 +19,6 @@ namespace RamsesBeatsaberPlugin
 			}
 
 			new GameObject("RaMSeS Plugin").AddComponent<MainApp>();
-
-			Console.WriteLine("SongBrowser Plugin Loaded()");
 		}
 
 		private void Awake()

@@ -10,6 +10,7 @@ namespace RateMapSeveritySaber
 {
 	public class BSMapIO
 	{
+#if !NET46
 		public static List<BSMap> ReadZip(string file)
 		{
 			using var fs = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -25,6 +26,7 @@ namespace RateMapSeveritySaber
 				return infoE.Open();
 			});
 		}
+#endif
 
 		public static List<BSMap> Read(string folder)
 			=> Read(file => File.Open(Path.Combine(folder, file), FileMode.Open, FileAccess.Read, FileShare.Read));

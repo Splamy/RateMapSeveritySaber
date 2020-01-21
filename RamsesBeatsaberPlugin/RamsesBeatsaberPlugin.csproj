@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>net461</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +17,9 @@
     <Reference Include="IPA.Loader">
       <HintPath>..\lib\IPA.Loader.dll</HintPath>
     </Reference>
+    <Reference Include="SongCore">
+      <HintPath>..\lib\SongCore.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\lib\UnityEngine.dll</HintPath>
     </Reference>
@@ -26,6 +29,10 @@
     <Reference Include="HMUI">
       <HintPath>..\lib\HMUI.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\RateMapSeveritySaber\RateMapSeveritySaber.csproj" />
   </ItemGroup>
   
   <Target Name="CopyCustomContent" AfterTargets="AfterBuild">

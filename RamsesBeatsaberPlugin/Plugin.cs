@@ -3,9 +3,11 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Newtonsoft.Json;
+using RateMapSeveritySaber;
 
 namespace RamsesBeatsaberPlugin
 {
+	// ReSharper disable once ClassNeverInstantiated.Global
 	public class RamsesPlugin : IBeatSaberPlugin
 	{
 		public string Name => "RaMSeS";
@@ -13,6 +15,7 @@ namespace RamsesBeatsaberPlugin
 
 		public void OnApplicationStart()
 		{
+			RamsesFileParser.LoadCachedFiles();
 			Log("Ramses initialized.");
 		}
 
@@ -24,37 +27,36 @@ namespace RamsesBeatsaberPlugin
 				Log("LDC hooked");
 				levelDetailController.didPresentContentEvent += (ldc, _) =>
 				{
-					Log($"Song name: {ldc?.selectedDifficultyBeatmap?.level?.songName}");
-					Log($"ID: {ldc?.selectedDifficultyBeatmap?.level?.levelID}");
-					Log($"Data: {JsonConvert.SerializeObject(ldc?.selectedDifficultyBeatmap?.beatmapData?.beatmapLinesData?.Take(5))}");
+					var difficulty = ldc?.selectedDifficultyBeatmap;
+					var level = difficulty?.level;
+					if (level != null)
+					{
+						Log($"Song name: {level.songName}");
+						Log($"ID: {level.levelID}");
+
+						RamsesFileParser.GetRamsesScore(level, difficulty);
+					}
+					else
+					{
+						Log("LDC has no selected level");
+					}
 				};
 			}
-		}
-
-		public void OnSceneLoaded(Scene arg0, LoadSceneMode arg1) { }
-
-		public void OnSceneUnloaded(Scene scene)
-		{
-			throw new System.NotImplementedException();
 		}
 
 		public void OnApplicationQuit()
 		{
 			SceneManager.activeSceneChanged -= OnActiveSceneChanged;
-			SceneManager.sceneLoaded -= OnSceneLoaded;
 		}
 
-		public void OnLevelWasLoaded(int level) { }
+		public void OnSceneUnloaded(Scene scene) {}
+		public void OnUpdate() {}
+		public void OnFixedUpdate() {}
+		public void OnSceneLoaded(Scene scene, LoadSceneMode sceneMode) {}
 
-		public void OnLevelWasInitialized(int level) { }
-
-		public void OnUpdate() { }
-
-		public void OnFixedUpdate() { }
-
-		private void Log(string text)
+		public static void Log(string text)
 		{
-			Debug.Log($"-Ram- {text}");
+			Debug.Log($"-Ramses- {text}");
 		}
 	}
 }

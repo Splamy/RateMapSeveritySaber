@@ -16,38 +16,36 @@ namespace RamsesBeatsaberPlugin
 	{
 		public static Sprite AnkhIcon;
 
-		private static RectTransform _ankhRatingButton;
-		private static bool done = false;
+		private RectTransform _ankhRatingButton;
+
+		public StandardLevelDetailViewController LevelDetailViewController { get; set; }
 
 		static UI()
 		{
 			AnkhIcon = LoadSpriteFromResources("RamsesBeatsaberPlugin.Assets.Ankh.png");
 		}
 
-		public static void Initialize(FlowCoordinator flowCoordinator)
+		public UI(FlowCoordinator flowCoordinator)
 		{
-			if (done)
-			{
-				RamsesPlugin.Log("Already loaded");
-				return;
-			}
+			Initialize(flowCoordinator);
+		}
 
+		private void Initialize(FlowCoordinator flowCoordinator)
+		{
 			var statsPanel = ExtractPanel(flowCoordinator);
 			var statTransforms = statsPanel.GetComponentsInChildren<RectTransform>();
 
 			_ankhRatingButton = UnityEngine.Object.Instantiate(statTransforms[1], statsPanel.transform, false);
 			SetStatButtonIcon(_ankhRatingButton, AnkhIcon);
 			DestroyHoverHint(_ankhRatingButton);
-
-			done = true;
 		}
 
 		// Ramses
 
-		public static void SetAnkhRating(float ankhRating)
+		public void SetAnkhRating(float? ankhRating)
 		{
 			if (_ankhRatingButton == null) return;
-			SetStatButtonText(_ankhRatingButton, ankhRating.ToString("F2"));
+			SetStatButtonText(_ankhRatingButton, ankhRating?.ToString("F2") ?? "N/A");
 		}
 
 		// BS UI
@@ -80,11 +78,11 @@ namespace RamsesBeatsaberPlugin
 			}
 		}
 
-		private static LevelParamsPanel ExtractPanel(FlowCoordinator flowCoordinator)
+		private LevelParamsPanel ExtractPanel(FlowCoordinator flowCoordinator)
 		{
 			var LevelSelectionFlowCoordinator = flowCoordinator;
 			var LevelSelectionNavigationController = LevelSelectionFlowCoordinator.GetPrivateField<LevelSelectionNavigationController>("_levelSelectionNavigationController");
-			var LevelDetailViewController = LevelSelectionNavigationController.GetPrivateField<StandardLevelDetailViewController>("_levelDetailViewController");
+			LevelDetailViewController = LevelSelectionNavigationController.GetPrivateField<StandardLevelDetailViewController>("_levelDetailViewController");
 			var StandardLevelDetailView = LevelDetailViewController.GetPrivateField<StandardLevelDetailView>("_standardLevelDetailView");
 			return StandardLevelDetailView.GetPrivateField<LevelParamsPanel>("_levelParamsPanel");
 		}
@@ -112,7 +110,7 @@ namespace RamsesBeatsaberPlugin
 		{
 			if (file.Count() > 0)
 			{
-				Texture2D Tex2D = new Texture2D(2, 2);
+				var Tex2D = new Texture2D(2, 2);
 				if (Tex2D.LoadImage(file))
 					return Tex2D;
 			}

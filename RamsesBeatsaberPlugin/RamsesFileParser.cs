@@ -6,6 +6,7 @@ using RateMapSeveritySaber;
 using LevelScores =
     System.Collections.Generic.Dictionary<string,
         System.Collections.Generic.Dictionary<BeatmapDifficulty, RateMapSeveritySaber.Score>>;
+using static RamsesBeatsaberPlugin.Logger;
 
 namespace RamsesBeatsaberPlugin
 {
@@ -23,7 +24,7 @@ namespace RamsesBeatsaberPlugin
             }
             catch (Exception e)
             {
-                RamsesPlugin.Log("Failed to load ramses cache.");
+                Log("Failed to load ramses cache.");
                 Console.WriteLine(e);
             }
         }
@@ -76,8 +77,8 @@ namespace RamsesBeatsaberPlugin
                         });
                         break;
                     default:
-                        RamsesPlugin.Log($"Unknown object data type {objectData.GetType()}");
-                        RamsesPlugin.Log(objectData);
+                        Log($"Unknown object data type {objectData.GetType()}");
+                        Log(objectData);
                         break;
                 }
             }

@@ -61,15 +61,15 @@ namespace RateMapSeveritySaber
 			return scores;
 		}
 
-		public static float[] ConvertToTimed(IList<ScoredHit> notes, int len)
+		public static float[] ConvertToTimed(IEnumerable<ScoredHit> notes, int len)
 		{
 			float[] timed = new float[len];
-			for (int i = 0; i < notes.Count; i++)
+			foreach (ScoredHit note in notes)
 			{
-				int timeIndex = (int)notes[i].Cluster.BeatTime;
+				int timeIndex = (int)note.Cluster.BeatTime;
 				if (timeIndex < 0 || timeIndex >= len)
 					continue;
-				timed[timeIndex] = Math.Max(timed[timeIndex], notes[i].Score);
+				timed[timeIndex] = Math.Max(timed[timeIndex], note.Score);
 			}
 			return timed;
 		}
@@ -82,14 +82,14 @@ namespace RateMapSeveritySaber
 			Vector2 resetVec = noteB.Start - noteA.End;
 
 			var totalHitDuration = noteB.RealTime - noteA.RealTime;
-			if (totalHitDuration <= Hit.Treshold)
+			if (totalHitDuration <= Hit.Threshold)
 				return 0;
 
 			float resetSwingDist = resetVec.Length;
 
 			float swing = noteB.Dir.Length + noteB.HitCoefficient;
 
-			float swingRelAB = 0, swingRelAReset = 0, swinRelBReset = 0;
+			float swingRelAB = 0, swingRelAReset = 0, swingRelBReset = 0;
 			if (!noteA.IsDot && !noteB.IsDot)
 				swingRelAB = Relation(noteA.Dir, noteB.Dir);
 
@@ -98,10 +98,10 @@ namespace RateMapSeveritySaber
 				if (!noteA.IsDot)
 					swingRelAReset = Relation(noteA.Dir, resetVec);
 				if (!noteB.IsDot)
-					swinRelBReset = Relation(noteB.Dir, resetVec);
+					swingRelBReset = Relation(noteB.Dir, resetVec);
 			}
 
-			float scoreParts = resetSwingDist + swing + swingRelAB + swingRelAReset + swinRelBReset;
+			float scoreParts = resetSwingDist + swing + swingRelAB + swingRelAReset + swingRelBReset;
 			float timeScaled = InvExpToLin(Math.Min((float)totalHitDuration.TotalSeconds, 1));
 			float score = scoreParts / timeScaled;
 			if (float.IsNaN(score) || float.IsInfinity(score))
@@ -114,20 +114,20 @@ namespace RateMapSeveritySaber
 		/// <summary>
 		/// Will combine multiple notes into a big one.
 		/// </summary>
-		private static List<Hit> ClusterNotes(IList<Hit> notes)
+		private static List<Hit> ClusterNotes(ICollection<Hit> notes)
 		{
 			var clusters = new List<Hit>(notes.Count);
 			var clusterBuild = new List<Hit>();
 
-			for (int i = 0; i < notes.Count; i++)
+			foreach (Hit note in notes)
 			{
-				if (clusterBuild.Count > 0 && clusterBuild[0].RealTime + Hit.Treshold < notes[i].RealTime)
+				if (clusterBuild.Count > 0 && clusterBuild[0].RealTime + Hit.Threshold < note.RealTime)
 				{
 					clusters.Add(Hit.Cluster(clusterBuild));
 					clusterBuild.Clear();
 				}
 
-				clusterBuild.Add(notes[i]);
+				clusterBuild.Add(note);
 			}
 
 			if (clusterBuild.Count > 0)

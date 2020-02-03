@@ -8,6 +8,7 @@ using Utf8Json;
 
 namespace RateMapSeveritySaber
 {
+	// ReSharper disable once ClassNeverInstantiated.Global
 	public class BSMapIO
 	{
 #if !NET46

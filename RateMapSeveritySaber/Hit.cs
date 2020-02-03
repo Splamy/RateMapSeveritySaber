@@ -20,7 +20,7 @@ namespace RateMapSeveritySaber
 		public bool IsDot => Dir.LengthSQ < Epsilon;
 		public List<JsonNote> Group { get; }
 
-		public static readonly TimeSpan Treshold = TimeSpan.FromMilliseconds(5);
+		public static readonly TimeSpan Threshold = TimeSpan.FromMilliseconds(5);
 
 		public Hit(Vector2 start, Vector2 end, float time, TimeSpan realTime, List<JsonNote> group)
 		{
@@ -49,7 +49,7 @@ namespace RateMapSeveritySaber
 			if (hits.Count == 1)
 				return hits[0];
 
-			var (start, end) = GetMaxDistNotes(hits);
+			(Hit start, Hit end) = GetMaxDistNotes(hits);
 
 			var mainHit = end.End - start.Start;
 
@@ -83,14 +83,14 @@ namespace RateMapSeveritySaber
 			{
 				// Distance
 				var dist = DistanceToLine(start.Start, end.End, hit.Start);
-				var distCoeff = ExpToLin(dist);
+				var distCoefficient = ExpToLin(dist);
 				// Rotation
 				var rot = Relation(mainHit, hit.Dir);
-				var rotCoeff = rot;
+				var rotCoefficient = rot;
 
-				var sumCoeff = distCoeff + rotCoeff;
+				var sumCoefficient = distCoefficient + rotCoefficient;
 
-				coefficient += sumCoeff;
+				coefficient += sumCoefficient;
 			}
 
 			return new Hit(

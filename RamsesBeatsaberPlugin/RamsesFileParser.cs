@@ -12,7 +12,7 @@ namespace RamsesBeatsaberPlugin
 {
     public static class RamsesFileParser
     {
-        private static readonly Dictionary<string, LevelScores> scoreCache = new Dictionary<string, LevelScores>();
+        private static readonly Dictionary<string, LevelScores> ScoreCache = new Dictionary<string, LevelScores>();
 
         public static void LoadCachedFiles()
         {
@@ -31,12 +31,12 @@ namespace RamsesBeatsaberPlugin
 
         public static Score GetRamsesScore(IBeatmapLevel level, IDifficultyBeatmap difficulty)
         {
-            if (!scoreCache.ContainsKey(level.levelID))
+            if (!ScoreCache.ContainsKey(level.levelID))
             {
-                scoreCache[level.levelID] = new LevelScores();
+                ScoreCache[level.levelID] = new LevelScores();
             }
 
-            var levelTypes = scoreCache[level.levelID];
+            var levelTypes = ScoreCache[level.levelID];
 
             if (!levelTypes.ContainsKey("yeet"))
             {

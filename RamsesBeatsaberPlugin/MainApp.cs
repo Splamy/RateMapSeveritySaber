@@ -1,12 +1,11 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using static RamsesBeatsaberPlugin.Logger;
 
 namespace RamsesBeatsaberPlugin
 {
-	class MainApp : MonoBehaviour
+	public class MainApp : MonoBehaviour
 	{
 		public static MainApp Instance;
 		public UI CurrentUI { get; set; }
@@ -54,9 +53,8 @@ namespace RamsesBeatsaberPlugin
 
 		private void LevelDetailController_didPresentContentEvent(StandardLevelDetailViewController ldc, StandardLevelDetailViewController.ContentType arg2)
 		{
-			var difficulty = ldc?.selectedDifficultyBeatmap;
-			if (difficulty != null)
-				LoadSongAnalysis(difficulty);
+			if (ldc != null && ldc.selectedDifficultyBeatmap != null)
+				LoadSongAnalysis(ldc.selectedDifficultyBeatmap);
 		}
 
 		private void LoadSongAnalysis(IDifficultyBeatmap difficulty)

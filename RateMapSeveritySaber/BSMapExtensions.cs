@@ -15,7 +15,7 @@ namespace RateMapSeveritySaber
 		private static float ExtendedPositionToRealPosition(int num)
 			=> Math.Abs(num) >= 1000 ? (num - Math.Sign(num) * 1000) / 1000f : num;
 
-		private static readonly float sqrt2 = BSMath.Sqrt(2f) / 2;
+		private static readonly float Sqrt2 = BSMath.Sqrt(2f) / 2;
 
 		// https://github.com/Kylemc1413/MappingExtensions#360-degree-note-rotation
 		public static Vector2 Rotation(this JsonNote note)
@@ -26,10 +26,10 @@ namespace RateMapSeveritySaber
 				NoteDir.Down => new Vector2(0f, -1f),
 				NoteDir.Left => new Vector2(-1f, 0f),
 				NoteDir.Right => new Vector2(1f, 0f),
-				NoteDir.UpLeft => new Vector2(sqrt2, -sqrt2),
-				NoteDir.UpRight => new Vector2(sqrt2, sqrt2),
-				NoteDir.DownLeft => new Vector2(-sqrt2, -sqrt2),
-				NoteDir.DownRight => new Vector2(-sqrt2, sqrt2),
+				NoteDir.UpLeft => new Vector2(Sqrt2, -Sqrt2),
+				NoteDir.UpRight => new Vector2(Sqrt2, Sqrt2),
+				NoteDir.DownLeft => new Vector2(-Sqrt2, -Sqrt2),
+				NoteDir.DownRight => new Vector2(-Sqrt2, Sqrt2),
 				NoteDir.Dot => new Vector2(0f, 0f), // TODO
 				var num when (int)num >= 1000 && (int)num <= 1360 => NoteRotationToVector((int)num),
 				_ => Vector2.Zero // Weird other stuff

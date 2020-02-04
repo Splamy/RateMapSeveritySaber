@@ -1,6 +1,6 @@
 ﻿namespace RateMapSeveritySaber
 {
-	public class Score
+	public class SongScore
 	{
 		public float Avg { get; set; }
 		public float Max { get; set; }
@@ -8,7 +8,7 @@
 
 		public override string ToString() => $"~{Avg} ^{Max}";
 
-		public Score(float avg, float max, float[] graph)
+		public SongScore(float avg, float max, float[] graph)
 		{
 			Avg = avg;
 			Max = max;

@@ -11,13 +11,13 @@ namespace RateMapSeveritySaber
 	{
 		public static readonly Encoding Utf8 = new UTF8Encoding(false, false);
 
-		public static Score AnalyzeMap(BSMap map)
+		public static SongScore AnalyzeMap(BSMap map)
 		{
 			int len = (int)BSMath.Ceiling(map.Data.Notes.Max(x => (float?)x.Time) ?? 0);
 
 			if (len == 0)
 			{
-				return new Score(avg: 0, max: 0, graph: Array.Empty<float>());
+				return new SongScore(avg: 0, max: 0, graph: Array.Empty<float>());
 			}
 
 			var timedRed = ProcessColor(map, NoteColor.Red, len);
@@ -30,7 +30,7 @@ namespace RateMapSeveritySaber
 				combined[i] = (timedRed[i] + timedBlue[i]) / cnt;
 			}
 
-			return new Score
+			return new SongScore
 			(
 				avg: combined.Average(),
 				max: combined.Max(),
@@ -53,11 +53,16 @@ namespace RateMapSeveritySaber
 				return Array.Empty<ScoredHit>();
 
 			var scores = new ScoredHit[notes.Count];
-			scores[0] = new ScoredHit(notes[0], 0);
+			scores[0] = new ScoredHit(notes[0], 0, 0);
 			for (int i = 1; i < notes.Count; i++)
 			{
-				scores[i] = new ScoredHit(notes[i], ScoreDistance(notes[i - 1], notes[i]));
+				float hitDifficulty = ScoreDistance(notes[i - 1], notes[i]);
+				float continuousDifficulty =
+					scores[i - 1].ContinuousDifficulty * Constants.ContinuousDifficultyCoefficient +
+					hitDifficulty * (1f - Constants.ContinuousDifficultyCoefficient);
+				scores[i] = new ScoredHit(notes[i], hitDifficulty, continuousDifficulty);
 			}
+
 			return scores;
 		}
 
@@ -69,8 +74,9 @@ namespace RateMapSeveritySaber
 				int timeIndex = (int)note.Cluster.BeatTime;
 				if (timeIndex < 0 || timeIndex >= len)
 					continue;
-				timed[timeIndex] = Math.Max(timed[timeIndex], note.Score);
+				timed[timeIndex] = Math.Max(timed[timeIndex], note.HitDifficulty);
 			}
+
 			return timed;
 		}
 

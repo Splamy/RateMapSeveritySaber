@@ -5,7 +5,7 @@ using System.Linq;
 using RateMapSeveritySaber;
 using LevelScores =
     System.Collections.Generic.Dictionary<string,
-        System.Collections.Generic.Dictionary<BeatmapDifficulty, RateMapSeveritySaber.Score>>;
+        System.Collections.Generic.Dictionary<BeatmapDifficulty, RateMapSeveritySaber.SongScore>>;
 using static RamsesBeatsaberPlugin.Logger;
 
 namespace RamsesBeatsaberPlugin
@@ -29,7 +29,7 @@ namespace RamsesBeatsaberPlugin
             }
         }
 
-        public static Score GetRamsesScore(IBeatmapLevel level, IDifficultyBeatmap difficulty)
+        public static SongScore GetRamsesScore(IBeatmapLevel level, IDifficultyBeatmap difficulty)
         {
             if (!ScoreCache.ContainsKey(level.levelID))
             {
@@ -40,7 +40,7 @@ namespace RamsesBeatsaberPlugin
 
             if (!levelTypes.ContainsKey("yeet"))
             {
-                levelTypes["yeet"] = new Dictionary<BeatmapDifficulty, Score>();
+                levelTypes["yeet"] = new Dictionary<BeatmapDifficulty, SongScore>();
             }
 
             var levelDifficulties = levelTypes["yeet"];

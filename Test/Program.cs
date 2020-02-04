@@ -31,11 +31,11 @@ namespace RateMapSeveritySaber
 			}
 		}
 
-		public static void DrawImage(Score score, string name)
+		public static void DrawImage(SongScore songScore, string name)
 		{
-			using var bitmap = new Bitmap(score.Graph.Length, (int)MathF.Ceiling(score.Graph.Max()) + 1);
+			using var bitmap = new Bitmap(songScore.Graph.Length, (int)MathF.Ceiling(songScore.Graph.Max()) + 1);
 			bitmap.SetPixel(0, 0, Color.Green);
-			DrawDebugPixels(bitmap, score.Graph);
+			DrawDebugPixels(bitmap, songScore.Graph);
 			bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
 			bitmap.Save(name);
 		}

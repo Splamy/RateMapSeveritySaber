@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using Microsoft.Win32;
 
 namespace RateMapSeveritySaber
 {
@@ -10,11 +12,26 @@ namespace RateMapSeveritySaber
 	{
 		public static void Main(string[] args)
 		{
-			//const string path = @"E:\Games\SteamGames\SteamApps\common\Beat Saber\Beat Saber_Data\CustomLevels";
-			//foreach (var mapFolder in Directory.EnumerateDirectories(path).Take(300))
+			string beatsaberPath = (string)Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 620980", "InstallLocation", null);
+			if (beatsaberPath == null)
 			{
-				//var mapPath = Path.Combine(path, mapFolder);
-				var mapPath = @"D:\Applications\Steam\steamapps\common\Beat Saber\Beat Saber_Data\CustomLevels\sliders";
+				Console.WriteLine("Beatsaber not found :(");
+				return;
+			}
+
+			string songFolder = Path.Combine(beatsaberPath, "Beat Saber_Data", "CustomLevels");
+			string[] songNames = {"16273-17666 Reol - Monster by Saut", "sliders", "streams"};
+
+			foreach (var songName in songNames)
+			{
+				var mapPath = Path.Combine(songFolder, songName);
+				if (!Directory.Exists(mapPath))
+				{
+					Console.WriteLine($"Map {songName} ({mapPath}) doesn't exist!");
+					continue;
+				}
+				Console.WriteLine($"{songName}:");
+
 				var sw = Stopwatch.StartNew();
 				var maps = BSMapIO.Read(mapPath);
 				//Console.WriteLine("Parsing: {0}ms", sw.ElapsedMilliseconds);
@@ -24,20 +41,20 @@ namespace RateMapSeveritySaber
 					Console.Write("Level {0}: ", map.MapInfo.DifficultyRank);
 					sw.Restart();
 					var score = Analyzer.AnalyzeMap(map);
-					DrawImage(score, map.MapInfo.Difficulty + ".png");
+					DrawImage(score, songName, map.MapInfo.Difficulty + ".png");
 					Console.Write(" Score: {0} in {1}ms", score, sw.ElapsedMilliseconds);
 					Console.WriteLine();
 				}
 			}
 		}
 
-		public static void DrawImage(SongScore songScore, string name)
+		public static void DrawImage(SongScore songScore, string dir, string name)
 		{
 			using var bitmap = new Bitmap(songScore.Graph.Length, (int)MathF.Ceiling(songScore.Max) + 1);
-			bitmap.SetPixel(0, 0, Color.Green);
 			DrawDebugPixels(bitmap, songScore.Graph);
 			bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
-			bitmap.Save(name);
+			Directory.CreateDirectory(dir);
+			bitmap.Save(Path.Combine(dir, name));
 		}
 
 		public static void DrawDebugPixels(Bitmap bitmap, AggregatedHit[] timed)

@@ -66,8 +66,8 @@ namespace RamsesBeatsaberPlugin
 				Log($"ID: {level.levelID}");
 
 				var score = RamsesFileParser.GetRamsesScore(level, difficulty);
-				CurrentUI.SetAnkhRating(score.Avg);
-				Log($"Ankh Score (Avg): {score.Avg}");
+				CurrentUI.SetAnkhRating(score.Average);
+				Log($"Ankh Score (Avg): {score.Average}");
 			}
 			else
 			{

@@ -17,28 +17,30 @@ namespace RateMapSeveritySaber
 
 			if (len == 0)
 			{
-				return new SongScore(avg: 0, max: 0, graph: Array.Empty<float>());
+				return new SongScore(average: 0, max: 0, graph: Array.Empty<AggregatedHit>());
 			}
 
 			var timedRed = ProcessColor(map, NoteColor.Red, len);
 			var timedBlue = ProcessColor(map, NoteColor.Blue, len);
 
-			var combined = new float[len];
+			var combined = new AggregatedHit[len];
 			for (int i = 0; i < len; i++)
 			{
-				int cnt = timedRed[i] > 0 && timedBlue[i] > 0 ? 2 : 1;
+				int cnt = timedRed[i].HitDifficulty > 0 && timedBlue[i].HitDifficulty > 0 ? 2 : 1;
 				combined[i] = (timedRed[i] + timedBlue[i]) / cnt;
 			}
 
+			var totalDifficulty = combined.Select(h => h.TotalDifficulty()).ToList();
+
 			return new SongScore
 			(
-				avg: combined.Average(),
-				max: combined.Max(),
+				average: totalDifficulty.Average(),
+				max: totalDifficulty.Max(),
 				graph: combined
 			);
 		}
 
-		public static float[] ProcessColor(BSMap map, NoteColor color, int len)
+		public static AggregatedHit[] ProcessColor(BSMap map, NoteColor color, int len)
 		{
 			var json = map.Data.Notes.Where(n => n.Type == color).ToArray();
 			var hits = json.Select(x => Hit.FromSingle(map, x)).ToArray();
@@ -47,34 +49,35 @@ namespace RateMapSeveritySaber
 			return ConvertToTimed(scored, len);
 		}
 
-		public static ScoredHit[] AnalyzeNotes(IList<Hit> notes)
+		public static ScoredClusterHit[] AnalyzeNotes(IList<Hit> notes)
 		{
 			if (notes.Count == 0)
-				return Array.Empty<ScoredHit>();
+				return Array.Empty<ScoredClusterHit>();
 
-			var scores = new ScoredHit[notes.Count];
-			scores[0] = new ScoredHit(notes[0], 0, 0);
+			var scores = new ScoredClusterHit[notes.Count];
+			scores[0] = new ScoredClusterHit(notes[0], 0, 0);
 			for (int i = 1; i < notes.Count; i++)
 			{
 				float hitDifficulty = ScoreDistance(notes[i - 1], notes[i]);
 				float continuousDifficulty =
 					scores[i - 1].ContinuousDifficulty * Constants.ContinuousDifficultyCoefficient +
 					hitDifficulty * (1f - Constants.ContinuousDifficultyCoefficient);
-				scores[i] = new ScoredHit(notes[i], hitDifficulty, continuousDifficulty);
+				scores[i] = new ScoredClusterHit(notes[i], hitDifficulty, continuousDifficulty);
 			}
 
 			return scores;
 		}
 
-		public static float[] ConvertToTimed(IEnumerable<ScoredHit> notes, int len)
+		public static AggregatedHit[] ConvertToTimed(IEnumerable<ScoredClusterHit> notes, int len)
 		{
-			float[] timed = new float[len];
-			foreach (ScoredHit note in notes)
+			AggregatedHit[] timed = new AggregatedHit[len];
+			foreach (ScoredClusterHit note in notes)
 			{
 				int timeIndex = (int)note.Cluster.BeatTime;
 				if (timeIndex < 0 || timeIndex >= len)
 					continue;
-				timed[timeIndex] = Math.Max(timed[timeIndex], note.HitDifficulty);
+				timed[timeIndex] = new AggregatedHit(Math.Max(timed[timeIndex].HitDifficulty, note.HitDifficulty),
+					Math.Max(timed[timeIndex].ContinuousDifficulty, note.ContinuousDifficulty));
 			}
 
 			return timed;

@@ -2,15 +2,15 @@
 {
 	public class SongScore
 	{
-		public float Avg { get; set; }
+		public float Average { get; set; }
 		public float Max { get; set; }
-		public float[] Graph { get; set; }
+		public AggregatedHit[] Graph { get; set; }
 
-		public override string ToString() => $"~{Avg} ^{Max}";
+		public override string ToString() => $"~{Average} ^{Max}";
 
-		public SongScore(float avg, float max, float[] graph)
+		public SongScore(float average, float max, AggregatedHit[] graph)
 		{
-			Avg = avg;
+			Average = average;
 			Max = max;
 			Graph = graph;
 		}

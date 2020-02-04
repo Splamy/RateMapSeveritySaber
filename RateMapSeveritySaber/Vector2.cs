@@ -1,14 +1,13 @@
 ﻿//#define SYSTEM_DRAWING_EXTENSION
 
-using System;
 #if SYSTEM_DRAWING_EXTENSION
 using System.Drawing;
 #endif
 
 namespace Math2D
 {
-	using SkalTyp = System.Single;
 	using static Math2D.BSMath;
+	using SkalTyp = System.Single;
 
 #pragma warning disable CS0660
 #pragma warning disable CS0661

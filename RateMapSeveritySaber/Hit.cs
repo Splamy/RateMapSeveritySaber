@@ -1,7 +1,7 @@
-﻿using System;
+﻿using Math2D;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Math2D;
 using static RateMapSeveritySaber.BSMapExtensions;
 
 namespace RateMapSeveritySaber

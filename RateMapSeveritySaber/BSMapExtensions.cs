@@ -1,5 +1,5 @@
-﻿using System;
-using Math2D;
+﻿using Math2D;
+using System;
 
 namespace RateMapSeveritySaber
 {

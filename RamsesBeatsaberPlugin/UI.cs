@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
+﻿using BS_Utils.Utilities;
 using HMUI;
+using System;
+using System.Linq;
 using System.Reflection;
-using Image = UnityEngine.UI.Image;
-using BS_Utils.Utilities;
 using TMPro;
+using UnityEngine;
+using Image = UnityEngine.UI.Image;
 
 namespace RamsesBeatsaberPlugin
 {

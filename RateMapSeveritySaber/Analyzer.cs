@@ -105,7 +105,10 @@ namespace RateMapSeveritySaber
 			float timeScaled = InvExpToLin(Math.Min((float)totalHitDuration.TotalSeconds, 1));
 			float score = scoreParts / timeScaled;
 			if (float.IsNaN(score) || float.IsInfinity(score))
-				return 0; // TODO some kind of warning
+			{
+				Console.WriteLine($"Error: Invalid note score for note at BeatTime {noteB.BeatTime}");
+				return 0;
+			}
 
 			return score;
 		}

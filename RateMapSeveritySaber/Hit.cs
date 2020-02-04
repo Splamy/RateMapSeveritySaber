@@ -84,13 +84,15 @@ namespace RateMapSeveritySaber
 				// Distance
 				var dist = DistanceToLine(start.Start, end.End, hit.Start);
 				var distCoefficient = ExpToLin(dist);
-				// Rotation
-				var rot = Relation(mainHit, hit.Dir);
-				var rotCoefficient = rot;
+				coefficient += distCoefficient;
 
-				var sumCoefficient = distCoefficient + rotCoefficient;
-
-				coefficient += sumCoefficient;
+				if (!hit.IsDot)
+				{
+					// Rotation
+					var rot = Relation(mainHit, hit.Dir);
+					var rotCoefficient = rot;
+					coefficient += rotCoefficient;
+				}
 			}
 
 			return new Hit(

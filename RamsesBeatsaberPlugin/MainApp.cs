@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using static RamsesBeatsaberPlugin.Logger;
@@ -7,8 +7,8 @@ namespace RamsesBeatsaberPlugin
 {
 	public class MainApp : MonoBehaviour
 	{
-		public static MainApp Instance;
-		public UI CurrentUI { get; set; }
+		public static MainApp? Instance;
+		public UI? CurrentUI { get; set; }
 
 		internal static void OnLoad()
 		{
@@ -20,7 +20,9 @@ namespace RamsesBeatsaberPlugin
 			new GameObject("RaMSeS Plugin").AddComponent<MainApp>();
 		}
 
+#pragma warning disable IDE0051 // Used by Unity
 		private void Awake()
+#pragma warning restore IDE0051
 		{
 			Instance = this;
 		}
@@ -59,8 +61,14 @@ namespace RamsesBeatsaberPlugin
 
 		private void LoadSongAnalysis(IDifficultyBeatmap difficulty)
 		{
+			if(CurrentUI == null)
+			{
+				Log($"UI not initalized");
+				return;
+			}
+
 			var level = difficulty?.level;
-			if (level != null)
+			if (difficulty != null && level != null)
 			{
 				Log($"Song name: {level.songName}");
 				Log($"ID: {level.levelID}");

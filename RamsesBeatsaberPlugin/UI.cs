@@ -1,4 +1,4 @@
-﻿using BS_Utils.Utilities;
+using BS_Utils.Utilities;
 using HMUI;
 using System;
 using System.Linq;
@@ -19,10 +19,12 @@ namespace RamsesBeatsaberPlugin
 
 		static UI()
 		{
-			AnkhIcon = LoadSpriteFromResources("RamsesBeatsaberPlugin.Assets.Ankh.png");
+			AnkhIcon = LoadSpriteFromResources("RamsesBeatsaberPlugin.Assets.Ankh.png") ?? throw new Exception("Failed to load ankh icon");
 		}
 
+#pragma warning disable CS8618 // LevelDetailViewController, _ankhRatingButton set in ExtractPanel
 		public UI(FlowCoordinator flowCoordinator)
+#pragma warning restore CS8618
 		{
 			Initialize(flowCoordinator);
 		}
@@ -62,7 +64,7 @@ namespace RamsesBeatsaberPlugin
 			HoverHint currentHoverHint = button.GetComponentsInChildren<HMUI.HoverHint>().First();
 			if (currentHoverHint != null)
 			{
-				UnityEngine.GameObject.DestroyImmediate(currentHoverHint);
+				GameObject.DestroyImmediate(currentHoverHint);
 			}
 		}
 
@@ -86,24 +88,24 @@ namespace RamsesBeatsaberPlugin
 
 		// Sprite stuff
 
-		public static Sprite LoadSpriteFromResources(string resourcePath, float PixelsPerUnit = 100.0f)
+		public static Sprite? LoadSpriteFromResources(string resourcePath, float PixelsPerUnit = 100.0f)
 		{
 			return LoadSpriteRaw(GetResource(Assembly.GetCallingAssembly(), resourcePath), PixelsPerUnit);
 		}
 
-		public static Sprite LoadSpriteRaw(byte[] image, float PixelsPerUnit = 100.0f)
+		public static Sprite? LoadSpriteRaw(byte[] image, float PixelsPerUnit = 100.0f)
 		{
 			return LoadSpriteFromTexture(LoadTextureRaw(image), PixelsPerUnit);
 		}
 
-		public static Sprite LoadSpriteFromTexture(Texture2D SpriteTexture, float PixelsPerUnit = 100.0f)
+		public static Sprite? LoadSpriteFromTexture(Texture2D? SpriteTexture, float PixelsPerUnit = 100.0f)
 		{
-			if (SpriteTexture)
+			if (SpriteTexture != null)
 				return Sprite.Create(SpriteTexture, new Rect(0, 0, SpriteTexture.width, SpriteTexture.height), new Vector2(0, 0), PixelsPerUnit);
 			return null;
 		}
 
-		public static Texture2D LoadTextureRaw(byte[] file)
+		public static Texture2D? LoadTextureRaw(byte[] file)
 		{
 			if (file.Count() > 0)
 			{

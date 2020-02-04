@@ -14,9 +14,9 @@ namespace RateMapSeveritySaber
 			//foreach (var mapFolder in Directory.EnumerateDirectories(path).Take(300))
 			{
 				//var mapPath = Path.Combine(path, mapFolder);
-				var mapPath = @"C:\Users\Splamy\Downloads\6a38 (MEGALOVANIA - puds).zip";
+				var mapPath = @"D:\Applications\Steam\steamapps\common\Beat Saber\Beat Saber_Data\CustomLevels\sliders";
 				var sw = Stopwatch.StartNew();
-				var maps = BSMapIO.ReadZip(mapPath);
+				var maps = BSMapIO.Read(mapPath);
 				//Console.WriteLine("Parsing: {0}ms", sw.ElapsedMilliseconds);
 
 				foreach (var map in maps)
@@ -35,9 +35,20 @@ namespace RateMapSeveritySaber
 		{
 			using var bitmap = new Bitmap(score.Graph.Length, (int)MathF.Ceiling(score.Graph.Max()) + 1);
 			bitmap.SetPixel(0, 0, Color.Green);
-			DrawPixels(bitmap, score.Graph);
+			DrawDebugPixels(bitmap, score.Graph);
 			bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
 			bitmap.Save(name);
+		}
+
+		public static void DrawDebugPixels(Bitmap bitmap, float[] timed)
+		{
+			for (int x = 0; x < timed.Length; x++)
+			{
+				for (int y = 0; y < timed[x]; y++)
+				{
+					bitmap.SetPixel(x, y, Color.Orange);
+				}
+			}
 		}
 
 		public static void DrawPixels(Bitmap bitmap, float[] timed)

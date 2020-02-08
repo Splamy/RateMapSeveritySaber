@@ -47,9 +47,21 @@ namespace RateMapSeveritySaber
 					JsonConvert.SerializeObject(score.Graph);
 					Console.Write(" Score: {0} in {1}ms", score, sw.ElapsedMilliseconds);
 					Console.WriteLine();
-					return score;
+					return new MapScoreOutput(map.Info.SongName, score);
 				});
-				File.WriteAllText("scores.json", JsonConvert.SerializeObject(scores));
+				File.WriteAllText("scores.js", "let scores = " + JsonConvert.SerializeObject(scores, Formatting.Indented));
+			}
+		}
+
+		private struct MapScoreOutput
+		{
+			public string Name;
+			public SongScore Score;
+
+			public MapScoreOutput(string name, SongScore score)
+			{
+				this.Name = name;
+				this.Score = score;
 			}
 		}
 	}

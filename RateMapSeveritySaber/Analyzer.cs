@@ -93,7 +93,7 @@ namespace RateMapSeveritySaber
 				if (timeIndex < 0 || timeIndex >= len)
 					continue;
 				timed[timeIndex] = new AggregatedHit(Math.Max(timed[timeIndex].HitDifficulty, note.HitDifficulty),
-					Math.Max(timed[timeIndex].ContinuousDifficulty, note.ContinuousDifficulty));
+					Math.Max(timed[timeIndex].ContinuousDifficulty, note.ContinuousDifficulty), (float)note.Cluster.RealTime.TotalSeconds);
 			}
 
 			return timed;

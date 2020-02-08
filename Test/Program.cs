@@ -12,7 +12,9 @@ namespace RateMapSeveritySaber
 	{
 		public static void Main(string[] args)
 		{
-			string beatsaberPath = (string)Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 620980", "InstallLocation", null);
+			string beatsaberPath = (string)Registry.GetValue(
+				@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 620980",
+				"InstallLocation", null);
 			if (beatsaberPath == null)
 			{
 				Console.WriteLine("Beatsaber not found :(");
@@ -20,7 +22,7 @@ namespace RateMapSeveritySaber
 			}
 
 			string songFolder = Path.Combine(beatsaberPath, "Beat Saber_Data", "CustomLevels");
-			string[] songNames = {"16273-17666 Reol - Monster by Saut", "sliders", "streams"};
+			string[] songNames = { "4502 Reol - Monster by Saut", "e55 Cycle Hit", "2898 Real Or Fake", "2789 quo vadis"};
 
 			foreach (var songName in songNames)
 			{
@@ -30,6 +32,7 @@ namespace RateMapSeveritySaber
 					Console.WriteLine($"Map {songName} ({mapPath}) doesn't exist!");
 					continue;
 				}
+
 				Console.WriteLine($"{songName}:");
 
 				var sw = Stopwatch.StartNew();
@@ -51,10 +54,24 @@ namespace RateMapSeveritySaber
 		public static void DrawImage(SongScore songScore, string dir, string name)
 		{
 			using var bitmap = new Bitmap(songScore.Graph.Length, (int)MathF.Ceiling(songScore.Max) + 1);
-			DrawDebugPixels(bitmap, songScore.Graph);
+			DrawGraph(bitmap, songScore.Graph.Select(h => h.HitDifficulty).ToList(), Color.Orange, 0);
+			DrawGraph(bitmap, songScore.Graph.Select(h => h.ContinuousDifficulty).ToList(), Color.Brown, 0);
 			bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);
 			Directory.CreateDirectory(dir);
 			bitmap.Save(Path.Combine(dir, name));
+		}
+
+		public static void DrawGraph(Bitmap bitmap, List<float> data, Color color, int offset)
+		{
+			for (int x = 0; x < data.Count; x++)
+			{
+				float y = 0;
+				while (y < data[x])
+				{
+					bitmap.SetPixel(x, (int)y + offset, color);
+					y++;
+				}
+			}
 		}
 
 		public static void DrawDebugPixels(Bitmap bitmap, AggregatedHit[] timed)

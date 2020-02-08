@@ -56,18 +56,28 @@ namespace RateMapSeveritySaber
 
 			var scores = new ScoredClusterHit[notes.Count];
 			scores[0] = new ScoredClusterHit(notes[0], 0, 0);
+			int lastGroup = 0;
+
 			for (int i = 1; i < notes.Count; i++)
 			{
 				float hitDifficulty = ScoreDistance(notes[i - 1], notes[i]);
 
-				var timeToPreviousHit = (float)(notes[i].RealTime - notes[i - 1].RealTime).TotalSeconds;
+				float timeToPreviousHit = (float)(notes[i].RealTime - notes[i - 1].RealTime).TotalSeconds;
+				float continuousDifficulty = scores[i - 1].ContinuousDifficulty;
+				int currentGroup = (int)(notes[i].RealTime.TotalSeconds / Constants.ContinuousGroupSizeSeconds);
+				if (currentGroup != lastGroup)
+				{
+					if (timeToPreviousHit > Constants.ContinuousGroupSizeSeconds)
+					{
+						continuousDifficulty = Math.Max(continuousDifficulty - ((currentGroup - lastGroup) * Constants.ContinuousDecay), 0f);
+					}
+					else
+					{
+						continuousDifficulty = Math.Min(continuousDifficulty + Constants.ContinuousBuildup, 100f);
+					}
+					lastGroup = currentGroup;
+				}
 
-				float decay = Math.Max(0f, (Constants.SecondsToMaxContinuousDecay - timeToPreviousHit) / Constants.SecondsToMaxContinuousDecay);
-				float decayedContinuousDifficulty = scores[i - 1].ContinuousDifficulty * decay;
-
-				float continuousDifficulty =
-					decayedContinuousDifficulty * Constants.ContinuousDifficultyCoefficient
-					+ hitDifficulty * (1f - Constants.ContinuousDifficultyCoefficient);
 				scores[i] = new ScoredClusterHit(notes[i], hitDifficulty, continuousDifficulty);
 			}
 

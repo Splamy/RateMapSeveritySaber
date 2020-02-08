@@ -1,12 +1,14 @@
+using System;
+
 namespace RateMapSeveritySaber
 {
 	public readonly struct AggregatedHit : IScoredHit
 	{
+		public TimeSpan Time { get; }
 		public float HitDifficulty { get; }
 		public float ContinuousDifficulty { get; }
-		public float Time { get; }
 
-		public AggregatedHit(float hitDifficulty, float continuousDifficulty, float time)
+		public AggregatedHit(float hitDifficulty, float continuousDifficulty, TimeSpan time)
 		{
 			HitDifficulty = hitDifficulty;
 			ContinuousDifficulty = continuousDifficulty;

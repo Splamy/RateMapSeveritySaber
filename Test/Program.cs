@@ -1,10 +1,9 @@
-﻿using System;
+using Microsoft.Win32;
+using Newtonsoft.Json;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.Json.Serialization;
-using Microsoft.Win32;
-using Newtonsoft.Json;
 
 namespace RateMapSeveritySaber
 {
@@ -22,15 +21,15 @@ namespace RateMapSeveritySaber
 			}
 
 			string songFolder = Path.Combine(beatsaberPath, "Beat Saber_Data", "CustomLevels");
-			string[] songNames = { "4502 Reol - Monster by Saut", "e55 Cycle Hit", "2898 Real Or Fake", "2789 quo vadis"};
+			string[] songNames = { "4502 Reol - Monster by Saut", "e55 Cycle Hit", "2898 Real Or Fake", "2789 quo vadis" };
 
-			foreach (var songName in songNames)
+			var scores = songNames.SelectMany(songName =>
 			{
 				var mapPath = Path.Combine(songFolder, songName);
 				if (!Directory.Exists(mapPath))
 				{
 					Console.WriteLine($"Map {songName} ({mapPath}) doesn't exist!");
-					continue;
+					return Enumerable.Empty<DebugSongScore>();
 				}
 
 				Console.WriteLine($"{songName}:");
@@ -39,30 +38,19 @@ namespace RateMapSeveritySaber
 				var maps = BSMapIO.Read(mapPath);
 				//Console.WriteLine("Parsing: {0}ms", sw.ElapsedMilliseconds);
 
-				var scores = maps.Select(map =>
+				return maps.Select(map =>
 				{
 					Console.Write("Level {0}: ", map.MapInfo.DifficultyRank);
 					sw.Restart();
-					var score = Analyzer.AnalyzeMap(map);
-					JsonConvert.SerializeObject(score.Graph);
+					var score = Analyzer.DebugMap(map);
+					score.Name = map.Info.SongName;
+
 					Console.Write(" Score: {0} in {1}ms", score, sw.ElapsedMilliseconds);
 					Console.WriteLine();
-					return new MapScoreOutput(map.Info.SongName, score);
+					return score;
 				});
-				File.WriteAllText("scores.js", "let scores = " + JsonConvert.SerializeObject(scores, Formatting.Indented));
-			}
-		}
-
-		private struct MapScoreOutput
-		{
-			public string Name;
-			public SongScore Score;
-
-			public MapScoreOutput(string name, SongScore score)
-			{
-				this.Name = name;
-				this.Score = score;
-			}
+			});
+			File.WriteAllText("scores.js", "const scores = " + JsonConvert.SerializeObject(scores, Formatting.Indented));
 		}
 	}
 }

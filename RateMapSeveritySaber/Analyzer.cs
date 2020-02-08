@@ -1,4 +1,4 @@
-﻿using Math2D;
+using Math2D;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,8 +20,11 @@ namespace RateMapSeveritySaber
 				return new SongScore(average: 0, max: 0, graph: Array.Empty<AggregatedHit>());
 			}
 
-			var timedRed = ProcessColor(map, NoteColor.Red, len);
-			var timedBlue = ProcessColor(map, NoteColor.Blue, len);
+			var scoredRed = ProcessColor(map, NoteColor.Red);
+			var scoredBlue = ProcessColor(map, NoteColor.Blue);
+
+			var timedRed = ConvertToFixedTimeBlocks(scoredRed, len);
+			var timedBlue = ConvertToFixedTimeBlocks(scoredBlue, len);
 
 			var combined = new AggregatedHit[len];
 			for (int i = 0; i < len; i++)
@@ -40,13 +43,38 @@ namespace RateMapSeveritySaber
 			);
 		}
 
-		public static AggregatedHit[] ProcessColor(BSMap map, NoteColor color, int len)
+		public static DebugSongScore DebugMap(BSMap map)
+		{
+			int len = (int)BSMath.Ceiling(map.Data.Notes.Max(x => (float?)x.Time) ?? 0);
+
+			if (len == 0)
+			{
+				throw new InvalidOperationException("Invalid Map");
+			}
+
+			var timedRed = ProcessColor(map, NoteColor.Red);
+			var timedBlue = ProcessColor(map, NoteColor.Blue);
+
+			DebugHitScore[] DebugHits(IEnumerable<ScoredClusterHit> arr) => arr.Select(x => { var d = new DebugHitScore(); d.Set(x); return d; }).ToArray();
+
+			var debugRed = DebugHits(timedRed);
+			var debugBlue = DebugHits(timedBlue);
+
+			return new DebugSongScore {
+				Name = map.Info.SongName,
+				DifficultyName = map.MapInfo.Difficulty,
+				DataRed = debugRed,
+				DataBlue = debugBlue,
+			};
+		}
+
+		public static ScoredClusterHit[] ProcessColor(BSMap map, NoteColor color)
 		{
 			var json = map.Data.Notes.Where(n => n.Type == color).ToArray();
 			var hits = json.Select(x => Hit.FromSingle(map, x)).ToArray();
 			var clustered = ClusterNotes(hits);
 			var scored = AnalyzeNotes(clustered);
-			return ConvertToTimed(scored, len);
+			return scored;
 		}
 
 		public static ScoredClusterHit[] AnalyzeNotes(IList<Hit> notes)
@@ -84,16 +112,16 @@ namespace RateMapSeveritySaber
 			return scores;
 		}
 
-		public static AggregatedHit[] ConvertToTimed(IEnumerable<ScoredClusterHit> notes, int len)
+		public static AggregatedHit[] ConvertToFixedTimeBlocks(IEnumerable<ScoredClusterHit> notes, int len)
 		{
-			AggregatedHit[] timed = new AggregatedHit[len];
+			var timed = new AggregatedHit[len];
 			foreach (ScoredClusterHit note in notes)
 			{
 				int timeIndex = (int)note.Cluster.BeatTime;
 				if (timeIndex < 0 || timeIndex >= len)
 					continue;
 				timed[timeIndex] = new AggregatedHit(Math.Max(timed[timeIndex].HitDifficulty, note.HitDifficulty),
-					Math.Max(timed[timeIndex].ContinuousDifficulty, note.ContinuousDifficulty), (float)note.Cluster.RealTime.TotalSeconds);
+					Math.Max(timed[timeIndex].ContinuousDifficulty, note.ContinuousDifficulty), note.Cluster.RealTime);
 			}
 
 			return timed;

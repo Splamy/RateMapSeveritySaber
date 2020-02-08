@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace RateMapSeveritySaber
 {
@@ -7,6 +7,7 @@ namespace RateMapSeveritySaber
 		public Hit Cluster { get; }
 		public float HitDifficulty { get; }
 		public float ContinuousDifficulty { get; }
+		public TimeSpan Time => Cluster.RealTime;
 
 		public ScoredClusterHit(Hit cluster, float hitDifficulty, float continuousDifficulty)
 		{

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
@@ -11,7 +11,7 @@
     <PackageProjectUrl>https://github.com/Splamy/RateMapSeveritySaber</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Splamy/RateMapSeveritySaber</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <Version>1.0.5</Version>
+    <Version>1.0.7</Version>
     <Nullable>enable</Nullable>
     <LangVersion>8.0</LangVersion>
   </PropertyGroup>

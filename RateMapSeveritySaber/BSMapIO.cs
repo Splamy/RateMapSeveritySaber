@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Runtime.Serialization;
 using Utf8Json;
 
@@ -23,7 +24,7 @@ namespace RateMapSeveritySaber
 			using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
 			return Read(file =>
 			{
-				var infoE = zip.GetEntry(file);
+				var infoE = zip.Entries.FirstOrDefault(e => e.Name.Equals(file, StringComparison.OrdinalIgnoreCase));
 				return infoE.Open();
 			});
 		}
@@ -43,10 +44,12 @@ namespace RateMapSeveritySaber
 
 			var maps = new List<BSMap>();
 
-			foreach (var set in info.DifficultyBeatmapSets)
+			for (int difficultySetIndex = 0; difficultySetIndex < info.DifficultyBeatmapSets.Length; difficultySetIndex++)
 			{
-				foreach (var mapj in set.DifficultyBeatmaps)
+				var set = info.DifficultyBeatmapSets[difficultySetIndex];
+				for (int difficultyIndex = 0; difficultyIndex < set.DifficultyBeatmaps.Length; difficultyIndex++)
 				{
+					var mapj = set.DifficultyBeatmaps[difficultyIndex];
 					using var fs = fileProvider(mapj.BeatmapFilename);
 					var map = JsonSerializer.Deserialize<JsonMap>(fs);
 					maps.Add(new BSMap
@@ -54,6 +57,10 @@ namespace RateMapSeveritySaber
 						Info = info,
 						MapInfo = mapj,
 						Data = map,
+
+						Characteristic = BSMapUtil.NameToCharacteristic(set.BeatmapCharacteristicName),
+						DifficultySetIndex = difficultySetIndex,
+						DifficultyIndex = difficultyIndex,
 					});
 				}
 			}
@@ -68,6 +75,10 @@ namespace RateMapSeveritySaber
 		public JsonInfo Info { get; set; }
 		public JsonInfoMap MapInfo { get; set; }
 		public JsonMap Data { get; set; }
+
+		public MapCharacteristic Characteristic { get; set; }
+		public int DifficultySetIndex { get; set; }
+		public int DifficultyIndex { get; set; }
 	}
 
 	public class JsonMap
@@ -155,5 +166,12 @@ namespace RateMapSeveritySaber
 		public float NoteJumpMovementSpeed { get; set; }
 	}
 
+	public enum MapCharacteristic
+	{
+		Unknown = 0,
+		Standard = 1,
+		Degree90 = 2,
+		Degree360 = 3,
+	}
 #pragma warning restore CS8618
 }

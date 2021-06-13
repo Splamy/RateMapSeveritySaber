@@ -1,4 +1,4 @@
-﻿using Math2D;
+using Math2D;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,7 +33,7 @@ namespace RateMapSeveritySaber
 
 		public static Hit FromSingle(BSMap map, JsonNote note)
 		{
-			return new Hit(
+			return new(
 				note.Position() + .5f + note.Rotation() * -.5f,
 				note.Position() + .5f + note.Rotation() * .5f,
 				note.Time,

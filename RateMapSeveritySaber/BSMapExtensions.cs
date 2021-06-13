@@ -1,4 +1,4 @@
-﻿using Math2D;
+using Math2D;
 using System;
 
 namespace RateMapSeveritySaber
@@ -10,7 +10,7 @@ namespace RateMapSeveritySaber
 
 		// https://github.com/Kylemc1413/MappingExtensions#precision-note-placement
 		public static Vector2 Position(this JsonNote note)
-			=> new Vector2(ExtendedPositionToRealPosition(note.X), ExtendedPositionToRealPosition(note.Y));
+			=> new (ExtendedPositionToRealPosition(note.X), ExtendedPositionToRealPosition(note.Y));
 
 		private static float ExtendedPositionToRealPosition(int num)
 			=> Math.Abs(num) >= 1000 ? (num - Math.Sign(num) * 1000) / 1000f : num;
@@ -22,16 +22,16 @@ namespace RateMapSeveritySaber
 		{
 			return note.Direction switch
 			{
-				NoteDir.Up => new Vector2(0f, 1f),
-				NoteDir.Down => new Vector2(0f, -1f),
-				NoteDir.Left => new Vector2(-1f, 0f),
-				NoteDir.Right => new Vector2(1f, 0f),
-				NoteDir.UpLeft => new Vector2(Sqrt2, -Sqrt2),
-				NoteDir.UpRight => new Vector2(Sqrt2, Sqrt2),
-				NoteDir.DownLeft => new Vector2(-Sqrt2, -Sqrt2),
-				NoteDir.DownRight => new Vector2(-Sqrt2, Sqrt2),
-				NoteDir.Dot => new Vector2(0f, 0f), // TODO
-				var num when (int)num >= 1000 && (int)num <= 1360 => NoteRotationToVector((int)num),
+				NoteDir.Up => new(0f, 1f),
+				NoteDir.Down => new(0f, -1f),
+				NoteDir.Left => new(-1f, 0f),
+				NoteDir.Right => new(1f, 0f),
+				NoteDir.UpLeft => new(Sqrt2, -Sqrt2),
+				NoteDir.UpRight => new(Sqrt2, Sqrt2),
+				NoteDir.DownLeft => new(-Sqrt2, -Sqrt2),
+				NoteDir.DownRight => new(-Sqrt2, Sqrt2),
+				NoteDir.Dot => new(0f, 0f), // TODO
+				var num when (int)num is >= 1000 and <= 1360 => NoteRotationToVector((int)num),
 				_ => Vector2.Zero // Weird other stuff
 			};
 		}

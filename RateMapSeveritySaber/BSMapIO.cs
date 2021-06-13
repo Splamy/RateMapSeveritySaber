@@ -12,7 +12,8 @@ namespace RateMapSeveritySaber
 	// ReSharper disable once ClassNeverInstantiated.Global
 	public class BSMapIO
 	{
-#if !NET46
+		public delegate Stream? FileProvider(string file);
+
 		public static List<BSMap> ReadZip(string file)
 		{
 			using var fs = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -22,25 +23,32 @@ namespace RateMapSeveritySaber
 		public static List<BSMap> ReadZip(Stream stream)
 		{
 			using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
-			return Read(file =>
-			{
-				var infoE = zip.Entries.FirstOrDefault(e => e.Name.Equals(file, StringComparison.OrdinalIgnoreCase));
-				return infoE.Open();
-			});
+			return ReadZip(zip);
 		}
-#endif
+
+		public static List<BSMap> ReadZip(ZipArchive zip) => Read(ZipProvider(zip));
+
+		public static JsonInfo? ReadZipInfo(string file)
+		{
+			using var fs = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+			return ReadZipInfo(fs);
+		}
+
+		public static JsonInfo? ReadZipInfo(Stream stream)
+		{
+			using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
+			return ReadZipInfo(zip);
+		}
+
+		public static JsonInfo? ReadZipInfo(ZipArchive zip) => ReadInfo(ZipProvider(zip));
 
 		public static List<BSMap> Read(string folder)
-			=> Read(file => File.Open(Path.Combine(folder, file), FileMode.Open, FileAccess.Read, FileShare.Read));
+			=> Read(FolderProvider(folder));
 
-		public static List<BSMap> Read(Func<string, Stream> fileProvider)
+		public static List<BSMap> Read(FileProvider fileProvider)
 		{
-			JsonInfo info;
-
-			using (var fs = fileProvider("info.dat"))
-			{
-				info = JsonSerializer.Deserialize<JsonInfo>(fs);
-			}
+			JsonInfo? info = ReadInfo(fileProvider);
+			if (info is null) throw new Exception("Found no info file");
 
 			var maps = new List<BSMap>();
 
@@ -66,6 +74,39 @@ namespace RateMapSeveritySaber
 			}
 
 			return maps;
+		}
+
+		public static JsonInfo? ReadInfo(string folder)
+			=> ReadInfo(FolderProvider(folder));
+
+		public static JsonInfo? ReadInfo(FileProvider fileProvider)
+		{
+			using var fs = fileProvider("info.dat") ?? fileProvider("info.json");
+			if (fs is null) return null;
+			return JsonSerializer.Deserialize<JsonInfo>(fs);
+		}
+
+		public static FileProvider FolderProvider(string folder)
+		{
+			return file =>
+			{
+				var path = Path.Combine(folder, file);
+				if (File.Exists(path))
+					return File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+				else
+					return null;
+			};
+		}
+
+		public static FileProvider ZipProvider(ZipArchive zip)
+		{
+			return file =>
+			{
+				var infoE = zip.Entries.FirstOrDefault(e => e.Name.Equals(file, StringComparison.OrdinalIgnoreCase));
+				if (infoE is null)
+					return null;
+				return infoE.Open();
+			};
 		}
 	}
 

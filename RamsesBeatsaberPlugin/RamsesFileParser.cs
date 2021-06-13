@@ -12,7 +12,7 @@ namespace RamsesBeatsaberPlugin
 {
 	public static class RamsesFileParser
 	{
-		private static readonly Dictionary<string, LevelScores> ScoreCache = new Dictionary<string, LevelScores>();
+		private static readonly Dictionary<string, LevelScores> ScoreCache = new();
 
 		public static void LoadCachedFiles()
 		{
@@ -33,14 +33,14 @@ namespace RamsesBeatsaberPlugin
 		{
 			if (!ScoreCache.ContainsKey(level.levelID))
 			{
-				ScoreCache[level.levelID] = new LevelScores();
+				ScoreCache[level.levelID] = new();
 			}
 
 			var levelTypes = ScoreCache[level.levelID];
 
 			if (!levelTypes.ContainsKey("yeet"))
 			{
-				levelTypes["yeet"] = new Dictionary<BeatmapDifficulty, SongScore>();
+				levelTypes["yeet"] = new();
 			}
 
 			var levelDifficulties = levelTypes["yeet"];
@@ -57,7 +57,7 @@ namespace RamsesBeatsaberPlugin
 
 		private static BSMap LevelDataToMap(IBeatmapLevel level, IDifficultyBeatmap difficulty)
 		{
-			var map = new BSMap { Data = new JsonMap { Notes = new List<JsonNote>(), Version = "" } };
+			var map = new BSMap { Data = new JsonMap { Notes = new(), Version = "" } };
 			foreach (BeatmapObjectData objectData in difficulty.beatmapData.beatmapLinesData.SelectMany(bld =>
 				bld.beatmapObjectsData))
 			{

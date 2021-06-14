@@ -4,8 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Runtime.Serialization;
-using Utf8Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace RateMapSeveritySaber
 {
@@ -59,7 +59,10 @@ namespace RateMapSeveritySaber
 				{
 					var mapj = set.DifficultyBeatmaps[difficultyIndex];
 					using var fs = fileProvider(mapj.BeatmapFilename);
-					var map = JsonSerializer.Deserialize<JsonMap>(fs);
+					if (fs is null) continue;
+					var file = ReadAll(fs);
+					var map = JsonSerializer.Deserialize<JsonMap>(file);
+					if (map is null) continue;
 					maps.Add(new BSMap
 					{
 						Info = info,
@@ -83,7 +86,8 @@ namespace RateMapSeveritySaber
 		{
 			using var fs = fileProvider("info.dat") ?? fileProvider("info.json");
 			if (fs is null) return null;
-			return JsonSerializer.Deserialize<JsonInfo>(fs);
+			var file = ReadAll(fs);
+			return JsonSerializer.Deserialize<JsonInfo>(file);
 		}
 
 		public static FileProvider FolderProvider(string folder)
@@ -108,6 +112,16 @@ namespace RateMapSeveritySaber
 				return infoE.Open();
 			};
 		}
+
+		private static byte[] ReadAll(Stream stream)
+		{
+			int len;
+			try { len = (int)stream.Length; } catch { len = 8192; };
+			using var mem = new MemoryStream(len);
+			stream.CopyTo(mem);
+			mem.Seek(0, SeekOrigin.Begin);
+			return mem.ToArray();
+		}
 	}
 
 #pragma warning disable CS8618
@@ -124,12 +138,12 @@ namespace RateMapSeveritySaber
 
 	public class JsonMap
 	{
-		[DataMember(Name = "_version")]
+		[JsonPropertyName("_version")]
 		public string Version { get; set; }
 		//public float[] _BPMChanges { get; set; }
 
 		//public List<object> _events { get; set; }
-		[DataMember(Name = "_notes")]
+		[JsonPropertyName("_notes")]
 		public List<JsonNote> Notes { get; set; }
 		//public List<object> _obstacles { get; set; }
 		//public List<object> _bookmarks { get; set; }
@@ -138,15 +152,15 @@ namespace RateMapSeveritySaber
 	[DebuggerDisplay("{X} {Y} | {Direction} {Type}")]
 	public class JsonNote
 	{
-		[DataMember(Name = "_time")]
+		[JsonPropertyName("_time")]
 		public float Time { get; set; }
-		[DataMember(Name = "_lineIndex")]
+		[JsonPropertyName("_lineIndex")]
 		public int X { get; set; }
-		[DataMember(Name = "_lineLayer")]
+		[JsonPropertyName("_lineLayer")]
 		public int Y { get; set; }
-		[DataMember(Name = "_type")]
+		[JsonPropertyName("_type")]
 		public NoteColor Type { get; set; }
-		[DataMember(Name = "_cutDirection")]
+		[JsonPropertyName("_cutDirection")]
 		public NoteDir Direction { get; set; }
 	}
 
@@ -172,15 +186,17 @@ namespace RateMapSeveritySaber
 	[DebuggerDisplay("{SongName} ({DifficultyBeatmapSets.Length} maps) @{BPM}")]
 	public class JsonInfo
 	{
-		[DataMember(Name = "_songName")]
+		[JsonPropertyName("_songName")]
 		public string SongName { get; set; }
-		[DataMember(Name = "_beatsPerMinute")]
+		[JsonPropertyName("_songAuthorName")]
+		public string SongAuthorName { get; set; }
+		[JsonPropertyName("_beatsPerMinute")]
 		public float BPM { get; set; }
-		[DataMember(Name = "_songTimeOffset")]
+		[JsonPropertyName("_songTimeOffset")]
 		public float SongTimeOffset { get; set; }
-		[DataMember(Name = "_songFilename")]
+		[JsonPropertyName("_songFilename")]
 		public string SongFilename { get; set; }
-		[DataMember(Name = "_difficultyBeatmapSets")]
+		[JsonPropertyName("_difficultyBeatmapSets")]
 		public JsonInfoMapSets[] DifficultyBeatmapSets { get; set; }
 
 	}
@@ -188,22 +204,22 @@ namespace RateMapSeveritySaber
 	[DebuggerDisplay("{BeatmapCharacteristicName} ({DifficultyBeatmaps.Length} maps)")]
 	public class JsonInfoMapSets
 	{
-		[DataMember(Name = "_beatmapCharacteristicName")]
+		[JsonPropertyName("_beatmapCharacteristicName")]
 		public string BeatmapCharacteristicName { get; set; }
-		[DataMember(Name = "_difficultyBeatmaps")]
+		[JsonPropertyName("_difficultyBeatmaps")]
 		public JsonInfoMap[] DifficultyBeatmaps { get; set; }
 	}
 
 	[DebuggerDisplay("{Difficulty} (file: {BeatmapFilename})")]
 	public class JsonInfoMap
 	{
-		[DataMember(Name = "_difficulty")]
+		[JsonPropertyName("_difficulty")]
 		public string Difficulty { get; set; }
-		[DataMember(Name = "_difficultyRank")]
+		[JsonPropertyName("_difficultyRank")]
 		public float DifficultyRank { get; set; }
-		[DataMember(Name = "_beatmapFilename")]
+		[JsonPropertyName("_beatmapFilename")]
 		public string BeatmapFilename { get; set; }
-		[DataMember(Name = "_noteJumpMovementSpeed")]
+		[JsonPropertyName("_noteJumpMovementSpeed")]
 		public float NoteJumpMovementSpeed { get; set; }
 	}
 

@@ -229,6 +229,10 @@ namespace RateMapSeveritySaber
 		Standard = 1,
 		Degree90 = 2,
 		Degree360 = 3,
+		OneSaber = 4,
+		NoArrows = 5,
+		Lawless = 6,
+		Lightshow = 7,
 	}
 #pragma warning restore CS8618
 }

@@ -33,9 +33,13 @@ namespace RateMapSeveritySaber
 			return name.ToUpperInvariant() switch
 			{
 				"STANDARD" => MapCharacteristic.Standard,
-				"360DEGREE" => MapCharacteristic.Degree360,
 				"90DEGREE" => MapCharacteristic.Degree90,
-				_ => MapCharacteristic.Standard,
+				"360DEGREE" => MapCharacteristic.Degree360,
+				"ONESABER" => MapCharacteristic.OneSaber,
+				"NOARROWS" => MapCharacteristic.NoArrows,
+				"LAWLESS" => MapCharacteristic.Lawless,
+				"LIGHTSHOW" => MapCharacteristic.Lightshow,
+				_ => MapCharacteristic.Unknown,
 			};
 		}
 
@@ -44,9 +48,13 @@ namespace RateMapSeveritySaber
 			return map switch
 			{
 				MapCharacteristic.Standard => "Standard",
-				MapCharacteristic.Degree360 => "360Degree",
 				MapCharacteristic.Degree90 => "90Degree",
-				_ => "Unknown",
+				MapCharacteristic.Degree360 => "360Degree",
+				MapCharacteristic.OneSaber => "OneSaber",
+				MapCharacteristic.NoArrows => "NoArrows",
+				MapCharacteristic.Lawless => "Lawless",
+				MapCharacteristic.Lightshow => "Lightshow",
+				MapCharacteristic.Unknown or _ => "Unknown",
 			};
 		}
 	}

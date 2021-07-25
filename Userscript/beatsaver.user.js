@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Cooles Beatsaver Script
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      1.0
 // @description  Shows difficulty estimations of maps
 // @author       Asuro
 // @match        https://beatsaver.com/*
@@ -10,6 +10,8 @@
 // @connect      splamy.de
 // @connect      jsdelivr.net
 // @require      https://cdn.jsdelivr.net/npm/chart.js@2.8.0
+// @updateURL    https://github.com/Splamy/RateMapSeveritySaber/raw/master/Userscript/beatsaver.user.js
+// @downloadURL  https://github.com/Splamy/RateMapSeveritySaber/raw/master/Userscript/beatsaver.user.js
 // ==/UserScript==
 
 function detailsModal(trackInfo, difficultyName, graphData) {

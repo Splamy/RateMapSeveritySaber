@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Cooles Beatsaver Script
+// @name         RaMSeS
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  Shows difficulty estimations of maps
 // @author       Asuro
 // @match        https://beatsaver.com/*
@@ -14,93 +14,115 @@
 // @downloadURL  https://github.com/Splamy/RateMapSeveritySaber/raw/master/Userscript/beatsaver.user.js
 // ==/UserScript==
 
+//@ts-check
+'use strict';
+
+/**
+ * @param {TrackInfo} trackInfo
+ * @param {string} difficultyName 
+ * @param {number[]} graphData
+ */
 function detailsModal(trackInfo, difficultyName, graphData) {
-    let modalStyle = "width: 90%";
-    document.body.insertAdjacentHTML("afterbegin", `
-    <div class="modal is-active">
-        <div class="modal-background"></div>
-        <div class="modal-content" style="${modalStyle}">
-            <div class="box">
-                <div class="is-size-3">${trackInfo.title}</div>
-                <div>
-                    <canvas id="graph-canvas"></canvas>
-                </div>
-            </div>
-        </div>
-        <button class="modal-close is-large" aria-label="close"></button>
-    </div>
-    `);
-    document.querySelectorAll(".modal-background").forEach(elem => elem.addEventListener("click", closeModal));
-    document.querySelectorAll(".modal-close").forEach(elem => elem.addEventListener("click", closeModal));
-    let canvas = document.getElementById("graph-canvas");
-    canvas.style.height = "7em";
-    let ctx = canvas.getContext("2d");
-    canvas.chart = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: graphData.map(x => ""),
-            datasets: [{
-                label: difficultyName,
-                backgroundColor: "rgb(255, 99, 132)",
-                borderColor: "rgb(255, 99, 132)",
-                data: graphData,
-                fill: true,
-                pointRadius: 0,
-            }]
-        },
-        options: {
-            maintainAspectRatio: false,
-            scales: {
-                xAxes: [{
-                    gridLines: {
-                        display: false,
-                    }
-                }]
-            }
-        }
-    });
+	let modalStyle = "background-color: #2F2F2F; border-radius: 1em; flex-direction: column;";
+	document.body.insertAdjacentHTML("afterbegin", `
+	<div class="modal ramses-graph ramses-close" style="display: block;">
+		<div class="modal-dialog modal-dialog-centered rabbit-dialog" style="${modalStyle}">
+			
+			<div>${trackInfo.title}</div>
+			<div style="height: 300px; width: 100%;">
+				<canvas id="graph-canvas"></canvas>
+			</div>
+		</div>
+	</div>
+	`);
+	document.querySelectorAll(".ramses-close").forEach(elem => elem.addEventListener("click", closeModal));
+	let canvas = document.getElementById("graph-canvas");
+	canvas.style.height = "7em";
+	let ctx = canvas.getContext("2d");
+	canvas.chart = new Chart(ctx, {
+		type: "line",
+		data: {
+			labels: graphData.map(x => ""),
+			datasets: [{
+				label: difficultyName,
+				backgroundColor: "rgb(255, 99, 132)",
+				borderColor: "rgb(255, 99, 132)",
+				data: graphData,
+				fill: true,
+				pointRadius: 0,
+			}]
+		},
+		options: {
+			maintainAspectRatio: false,
+			scales: {
+				xAxes: [{
+					gridLines: {
+						display: false,
+					}
+				}]
+			}
+		}
+	});
 }
 
 function closeModal() {
-    document.querySelectorAll(".modal").forEach(elem => elem.remove());
+	document.querySelectorAll(".ramses-graph").forEach(elem => elem.remove());
 }
 
-/**
- * @param {String} id
- * @param {HTMLElement} beatmapContentElement 
- * @param {Array<any>} maps 
- */
-function insertDifficulties(trackInfo, beatmapContentElement, maps) {
-    maps.forEach(mapInfo => {
-        let difficulty = mapInfo.difficulty.toLowerCase();
-        if (difficulty === "expertplus") {
-            difficulty = "expert-plus";
-        }
-        let targetTag = beatmapContentElement.querySelector(`.is-${difficulty}`);
-        let avgDifficulty = formatNumber(mapInfo.avgDifficulty, 2);
-        let maxDifficulty = formatNumber(mapInfo.maxDifficulty, 2);
+/** @typedef {{ id: string, title: string }} TrackInfo */
+/** @typedef {{ maps: { difficulty: string, characteristic: string, maxDifficulty: number, avgDifficulty: number, graph: number[] }[] }} Score */
 
-        if (targetTag) {
-            let tagStyle = "cursor: pointer";
-            let ankhStyle = "margin-right: .5em; font-size: 1.5em";
-            let htmlId = `${difficulty}${trackInfo.id}`
-            let tagHtml = `
-                <span id="${htmlId}" class="tag is-${difficulty}" title="~Average Difficulty, ^Max Difficulty" style="${tagStyle}">
-                    <b style="${ankhStyle}">☥</b>
-                    <span style="margin-right: .8em">~${avgDifficulty}</span>
-                <span>^${maxDifficulty}</span>
-            `;
-            targetTag.insertAdjacentHTML("afterend", tagHtml);
-            document.querySelector("#" + htmlId).addEventListener("click", () => detailsModal(trackInfo, mapInfo.difficulty, mapInfo.graph));
-        } else {
-            console.warn(`Didn't find tag!`);
-        }
-    });
+/**
+ * @param {TrackInfo} trackInfo
+ * @param {HTMLElement[]} diffs 
+ * @param {Score} score
+ */
+function insertDifficulties(trackInfo, diffs, score, overview) {
+	diffs.forEach(diff => {
+		const img = diff.querySelector("img");
+		const findCharacteristic = img.title;
+		let findDiff = img.nextSibling.textContent;
+		if (findDiff === "Expert+") {
+			findDiff = "ExpertPlus";
+		}
+
+		const mapInfo = score.maps.find(mapInfo =>
+			mapInfo.characteristic === findCharacteristic
+			&& mapInfo.difficulty === findDiff);
+
+		if (!mapInfo) {
+			console.log("Didn't find mapinfo", diff, findCharacteristic, findDiff);
+			return;
+		}
+
+		const avgDifficulty = formatNumber(mapInfo.avgDifficulty, 2);
+		const maxDifficulty = formatNumber(mapInfo.maxDifficulty, 2);
+
+		if (overview) {
+			const tagHtml = `
+				<div style="margin: 0 .5em; font-size: 1.3em;">☥</div>
+				<div style="white-space: pre;">~${avgDifficulty}&nbsp;&nbsp;^${maxDifficulty}</div>
+			`;
+			diff.style.cursor = "pointer";
+			diff.style.display = "inline-flex";
+			diff.style.alignItems = "center";
+			diff.insertAdjacentHTML("beforeend", tagHtml);
+			diff.addEventListener("click", () => detailsModal(trackInfo, mapInfo.difficulty, mapInfo.graph));
+		} else {
+			const stats = diff.querySelector(".stats");
+			const style = "font-size: 1.5em; font-weight: normal;";
+			const tagHtml = `
+				<span><b style="${style}">☥~</b> ${avgDifficulty}</span>
+				<span><b style="${style}">☥^</b> ${maxDifficulty}</span>
+			`;
+			stats.insertAdjacentHTML("beforeend", tagHtml);
+		}
+	});
 }
 
 function formatNumber(num, digits) {
-    if (digits === undefined) digits = 2;
-    return num.toLocaleString("en", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+	if (digits === undefined) digits = 2;
+	return num.toLocaleString("en", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
 /**
@@ -108,13 +130,13 @@ function formatNumber(num, digits) {
  * @returns {string | undefined}
  */
 function getHostName(url) {
-    var match = url.match(/:\/\/([^/:]+)/i);
-    if (match && match.length > 1 && typeof match[1] === 'string' && match[1].length > 0) {
-        return match[1];
-    }
-    else {
-        return undefined;
-    }
+	var match = url.match(/:\/\/([^/:]+)/i);
+	if (match && match.length > 1 && typeof match[1] === 'string' && match[1].length > 0) {
+		return match[1];
+	}
+	else {
+		return undefined;
+	}
 }
 
 /**
@@ -122,66 +144,106 @@ function getHostName(url) {
  * @returns {Promise<string>}
  */
 function fetch2(url) {
-    return new Promise(function (resolve, reject) {
-        let host = getHostName(url);
-        let request_param = {
-            method: "GET",
-            url: url,
-            headers: { "Origin": host },
-            onload: (req) => {
-                if (req.status >= 200 && req.status < 300) {
-                    resolve(req.responseText);
-                } else {
-                    reject();
-                }
-            },
-            onerror: () => {
-                reject();
-            }
-        };
-        GM_xmlhttpRequest(request_param);
-    });
+	return new Promise(function (resolve, reject) {
+		let host = getHostName(url);
+		let request_param = {
+			method: "GET",
+			url: url,
+			headers: { "Origin": host },
+			onload: (req) => {
+				if (req.status >= 200 && req.status < 300) {
+					resolve(req.responseText);
+				} else {
+					reject();
+				}
+			},
+			onerror: () => {
+				reject();
+			}
+		};
+		GM_xmlhttpRequest(request_param);
+	});
 }
 
-(function () {
-    'use strict';
+/** @type {Record<string,Score>} */
+let cache = {};
+let isUpdating = false;
 
-    let observer = new MutationObserver((mutationList) => {
-        mutationList.forEach(mut => {
-            if (mut.target.nodeType === mut.target.ELEMENT_NODE) {
-                /** @type {HTMLElement} */
-                let element = mut.target;
+async function getScore(mapId) {
+	let json = cache[mapId];
+	if (!json) {
+		const response = await fetch2(`https://splamy.de/api/ramses/${mapId}`);
+		json = JSON.parse(response);
+		cache[mapId] = json;
+	}
+	return json;
+}
 
-                // .beatmap-result          => entry in hot/search/..
-                // div.container.has-footer => beatmap details page
-                if (element.classList.contains("beatmap-result") || element.querySelector(":scope > .detail-artwork")) {
-                    if (element.classList.contains("ramses-matched"))
-                        return;
-                    element.classList.add("ramses-matched");
+async function scan() {
+	if (isUpdating) return;
+	isUpdating = true;
+	let rescan = false;
+	try {
+		let searchResults = document.querySelector(".search-results");
+		if (searchResults) {
+			for (let map of searchResults.querySelectorAll(":scope > .beatmap:not(.ramses-matched)")) {
+				map.classList.add("ramses-matched");
 
-                    if (mut.previousSibling === null) {
-                        let trackInfo = {
-                            id: element.querySelector(".right li").innerText.split(" ")[0],
-                            title: element.querySelector("h1").innerText,
-                        }
+				const titleA = map.querySelector(".info > a");
+				/** @type {TrackInfo} */
+				const trackInfo = {
+					id: titleA.href.split("/").pop(),
+					title: titleA.innerText,
+				}
 
-                        if (element.difficultyCache) {
-                            insertDifficulties(trackInfo, element, element.difficultyCache);
-                        } else {
-                            fetch2(`https://splamy.de/api/ramses/${trackInfo.id}`).then(response => {
-                                let json = JSON.parse(response);
-                                element.difficultyCache = json.maps;
-                                insertDifficulties(trackInfo, element, element.difficultyCache);
-                            });
-                        }
-                    }
-                }
-            }
-        });
-    });
-    observer.observe(document.querySelector("body"), {
-        attributes: false,
-        childList: true,
-        subtree: true,
-    });
-})();
+				let json = await getScore(trackInfo.id);
+				if (!map.isConnected) {
+					rescan = true;
+					break;
+				}
+
+				const diffsContainer = map.querySelector(".diffs");
+				/** @type {HTMLElement[]} */
+				const diffs = [...diffsContainer.querySelectorAll("span.badge")];
+				insertDifficulties(trackInfo, diffs, json, true);
+			}
+		}
+
+		let mapstats = document.querySelector(".mapstats");
+		if (mapstats && !mapstats.classList.contains("ramses-matched")) {
+			mapstats.classList.add("ramses-matched");
+
+			/** @type {TrackInfo} */
+			const trackInfo = {
+				id: window.location.pathname.split("/").pop(),
+				title: document.querySelector(".card-header").firstChild.textContent,
+			}
+
+			let json = await getScore(trackInfo.id);
+			if (!mapstats.isConnected) {
+				rescan = true;
+				return;
+			}
+
+			/** @type {HTMLElement[]} */
+			const diffs = [...mapstats.querySelectorAll(":scope > a")];
+			insertDifficulties(trackInfo, diffs, json, false);
+		}
+	} finally {
+		isUpdating = false;
+	}
+
+	if (rescan) {
+		await scan();
+	}
+}
+
+let observer = new MutationObserver((mutationList) => {
+	scan();
+});
+
+observer.observe(document.querySelector("#root"), {
+	attributes: false,
+	childList: true,
+	subtree: true,
+});

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RaMSeS
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  Shows difficulty estimations of maps
 // @author       Asuro
 // @match        https://beatsaver.com/*
@@ -19,7 +19,7 @@
 
 /**
  * @param {TrackInfo} trackInfo
- * @param {string} difficultyName 
+ * @param {string} difficultyName
  * @param {number[]} graphData
  */
 function detailsModal(trackInfo, difficultyName, graphData) {
@@ -27,7 +27,7 @@ function detailsModal(trackInfo, difficultyName, graphData) {
 	document.body.insertAdjacentHTML("afterbegin", `
 	<div class="modal ramses-graph ramses-close" style="display: block;">
 		<div class="modal-dialog modal-dialog-centered rabbit-dialog" style="${modalStyle}">
-			
+
 			<div>${trackInfo.title}</div>
 			<div style="height: 300px; width: 100%;">
 				<canvas id="graph-canvas"></canvas>
@@ -74,13 +74,13 @@ function closeModal() {
 
 /**
  * @param {TrackInfo} trackInfo
- * @param {HTMLElement[]} diffs 
+ * @param {HTMLElement[]} diffs
  * @param {Score} score
  */
 function insertDifficulties(trackInfo, diffs, score, overview) {
 	diffs.forEach(diff => {
 		const img = diff.querySelector("img");
-		const findCharacteristic = img.title;
+		const findCharacteristic = img.alt;
 		let findDiff = img.nextSibling.textContent;
 		if (findDiff === "Expert+") {
 			findDiff = "ExpertPlus";

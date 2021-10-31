@@ -142,10 +142,10 @@ namespace Math2D
 
 namespace Math2D
 {
-#if NETSTANDARD2_1
-	using M = System.MathF;
-#else
+#if NETSTANDARD2_0
 	using M = System.Math;
+#else
+	using M = System.MathF;
 #endif
 
 	internal class BSMath

@@ -4,6 +4,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace RateMapSeveritySaber
 {
@@ -11,7 +12,7 @@ namespace RateMapSeveritySaber
 	{
 		public static void Main(string[] args)
 		{
-			string beatsaberPath = (string)Registry.GetValue(
+			var beatsaberPath = (string?)Registry.GetValue(
 				@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 620980",
 				"InstallLocation", null);
 			if (beatsaberPath == null)
@@ -21,7 +22,7 @@ namespace RateMapSeveritySaber
 			}
 
 			string songFolder = Path.Combine(beatsaberPath, "Beat Saber_Data", "CustomLevels");
-			string[] songNames = { "4502 Reol - Monster by Saut", "e55 Cycle Hit", "2898 Real Or Fake", "2789 quo vadis" };
+			string[] songNames = { "1ca11 (Odo - CoolingCloset)", "1d1dc (RISE - RateGyro & FakePope)" /*Paul*/, "1949e (Viyella's Scream - Timbo)", "2789 quo vadis" };
 
 			var scores = songNames.SelectMany(songName =>
 			{
@@ -43,14 +44,25 @@ namespace RateMapSeveritySaber
 					Console.Write("Level {0}: ", map.MapInfo.DifficultyRank);
 					sw.Restart();
 					var score = Analyzer.DebugMap(map);
-					score.Name = map.Info.SongName;
+					if (score is not null)
+					{
+						score.Name = map.Info.SongName;
+					}
 
 					Console.Write(" Score: {0} in {1}ms", score, sw.ElapsedMilliseconds);
 					Console.WriteLine();
 					return score;
-				});
+				}).Where(score => score is not null);
 			});
-			File.WriteAllText("scores.js", "const scores = " + JsonConvert.SerializeObject(scores, Formatting.Indented));
+
+			var json = System.Text.Json.JsonSerializer.Serialize(scores, new JsonSerializerOptions()
+			{
+				Converters = {
+					new TimeSpanConverter()
+				},
+				WriteIndented = true
+			});
+			File.WriteAllText("scores.js", "const scores = " + json);
 		}
 	}
 }

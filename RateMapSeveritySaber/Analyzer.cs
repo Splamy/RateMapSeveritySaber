@@ -43,13 +43,14 @@ namespace RateMapSeveritySaber
 			);
 		}
 
-		public static DebugSongScore DebugMap(BSMap map)
+		public static DebugSongScore? DebugMap(BSMap map)
 		{
 			int len = (int)BSMath.Ceiling(map.Data.Notes.Max(x => (float?)x.Time) ?? 0);
 
 			if (len == 0)
 			{
-				throw new InvalidOperationException("Invalid Map");
+				//throw new InvalidOperationException("Invalid Map");
+				return null;
 			}
 
 			var timedRed = ProcessColor(map, NoteColor.Red);

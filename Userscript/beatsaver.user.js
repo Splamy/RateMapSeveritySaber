@@ -143,8 +143,8 @@ function getHostName(url) {
  * @param {string} url
  * @returns {Promise<string>}
  */
-function fetch2(url) {
-	return new Promise(function (resolve, reject) {
+async function fetch2(url) {
+	const prom = new Promise(function (resolve, reject) {
 		let host = getHostName(url);
 		let request_param = {
 			method: "GET",
@@ -154,15 +154,17 @@ function fetch2(url) {
 				if (req.status >= 200 && req.status < 300) {
 					resolve(req.responseText);
 				} else {
-					reject();
+					reject(`Request returned non-ok ${req.status} for request ${url}`);
 				}
 			},
-			onerror: () => {
-				reject();
+			onerror: (...errors) => {
+				reject({ msg: "Request Failed", ...errors });
 			}
 		};
 		GM_xmlhttpRequest(request_param);
 	});
+
+	return await prom.catch((val) => { throw new Error(val); });
 }
 
 /** @type {Record<string,Score>} */
@@ -172,7 +174,7 @@ let isUpdating = false;
 async function getScore(mapId) {
 	let json = cache[mapId];
 	if (!json) {
-		const response = await fetch2(`https://splamy.de/api/ramses/${mapId}`);
+		const response = await fetch2(`https://splamy.de/api/ramses/m/${mapId}`);
 		json = JSON.parse(response);
 		cache[mapId] = json;
 	}
@@ -187,16 +189,31 @@ async function scan() {
 		let searchResults = document.querySelector(".search-results");
 		if (searchResults) {
 			for (let map of searchResults.querySelectorAll(":scope > .beatmap:not(.ramses-matched)")) {
+				if (map.classList.contains("loading")) {
+					// Skip while map is marked loading
+					continue;
+				}
+
 				map.classList.add("ramses-matched");
 
 				const titleA = map.querySelector(".info > a");
+				if (titleA == null) {
+					console.warn("RsMSeS:", map, "element has no link element")
+					continue;
+				}
 				/** @type {TrackInfo} */
 				const trackInfo = {
 					id: titleA.href.split("/").pop(),
 					title: titleA.innerText,
 				}
 
-				let json = await getScore(trackInfo.id);
+				let json;
+				try {
+					json = await getScore(trackInfo.id);
+				} catch (getErr) {
+					console.error("Failed to fetch map", getErr);
+					continue;
+				}
 				if (!map.isConnected) {
 					rescan = true;
 					break;
@@ -229,6 +246,8 @@ async function scan() {
 			const diffs = [...mapstats.querySelectorAll(":scope > a")];
 			insertDifficulties(trackInfo, diffs, json, false);
 		}
+	} catch (err) {
+		console.error("RaMSeS Ex", err);
 	} finally {
 		isUpdating = false;
 	}

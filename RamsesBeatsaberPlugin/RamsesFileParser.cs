@@ -1,4 +1,7 @@
 using RateMapSeveritySaber;
+using RateMapSeveritySaber.Parser;
+using RateMapSeveritySaber.Parser.Abstract;
+using RateMapSeveritySaber.Parser.V2;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -70,7 +73,7 @@ namespace RamsesBeatsaberPlugin
 					map.Data.Notes.Add(new JsonNote
 					{
 						Direction = (NoteDir)(int)noteData.cutDirection,
-						Time = noteData.time,
+						Beat = noteData.time,
 						Type = (NoteColor)(int)noteData.noteType,
 						X = noteData.lineIndex,
 						Y = (int)noteData.noteLineLayer

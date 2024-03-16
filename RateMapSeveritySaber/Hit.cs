@@ -1,4 +1,6 @@
 using Math2D;
+using RateMapSeveritySaber.Parser.Abstract;
+using RateMapSeveritySaber.Parser.V2;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,13 +33,13 @@ namespace RateMapSeveritySaber
 			Group = group;
 		}
 
-		public static Hit FromSingle(BSMap map, JsonNote note)
+		public static Hit FromSingle(BSDifficulty map, JsonNote note)
 		{
 			return new(
 				note.Position() + .5f + note.Rotation() * -.5f,
 				note.Position() + .5f + note.Rotation() * .5f,
-				note.Time,
-				map.BeatTimeToRealTime(note.Time),
+				note.Beat,
+				map.BeatTimeToRealTime(note.Beat),
 				new List<JsonNote> { note }
 			);
 		}
@@ -67,9 +69,7 @@ namespace RateMapSeveritySaber
 			if (angle > BSMath.PI / 2 && angle < BSMath.PI / 2 * 3)
 			{
 				mainHit = -mainHit;
-				var tmp = end;
-				end = start;
-				start = tmp;
+				(start, end) = (end, start);
 			}
 
 			// Calculating the coefficient for the swing difficulty

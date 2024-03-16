@@ -1,4 +1,6 @@
 using Math2D;
+using RateMapSeveritySaber.Parser;
+using RateMapSeveritySaber.Parser.Abstract;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +13,7 @@ namespace RateMapSeveritySaber
 	{
 		public static readonly Encoding Utf8 = new UTF8Encoding(false, false);
 
-		public static SongScore AnalyzeMap(BSMap map)
+		public static SongScore AnalyzeMap(BSDifficulty map)
 		{
 			int len = (int)BSMath.Ceiling(map.Data.Notes.Max(x => (float?)x.Time) ?? 0);
 
@@ -43,7 +45,7 @@ namespace RateMapSeveritySaber
 			);
 		}
 
-		public static DebugSongScore? DebugMap(BSMap map)
+		public static DebugSongScore? DebugMap(BSDifficulty map)
 		{
 			int len = (int)BSMath.Ceiling(map.Data.Notes.Max(x => (float?)x.Time) ?? 0);
 
@@ -69,7 +71,7 @@ namespace RateMapSeveritySaber
 			};
 		}
 
-		public static ScoredClusterHit[] ProcessColor(BSMap map, NoteColor color)
+		public static ScoredClusterHit[] ProcessColor(BSDifficulty map, NoteColor color)
 		{
 			var json = map.Data.Notes.Where(n => n.Type == color).ToArray();
 			var hits = json.Select(x => Hit.FromSingle(map, x)).ToArray();

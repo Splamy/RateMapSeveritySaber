@@ -1,7 +1,9 @@
 using Microsoft.Win32;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
 
@@ -9,33 +11,53 @@ namespace RateMapSeveritySaber;
 
 public class Program
 {
-	public static void Main(string[] args)
+	public static void Main()
 	{
+		List<BsMapProvider> maps = [];
+
 		var beatsaberPath = (string?)Registry.GetValue(
 			@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 620980",
 			"InstallLocation", null);
+
+		foreach (var file in Directory.GetFiles(@"E:\_Projects\RateMapSeveritySaber\Test\TestMaps", "*.zip"))
+		{
+			maps.Add(new PlainZipMapProvider(new ZipArchive(File.OpenRead(file))));
+		}
+
 		if (beatsaberPath == null)
 		{
 			Console.WriteLine("Beatsaber not found :(");
-			return;
+		}
+		else
+		{
+			string songFolder = Path.Combine(beatsaberPath, "Beat Saber_Data", "CustomLevels");
+			string[] songNames = [
+				"1ca11 (Odo - CoolingCloset)",
+				"1d1dc (RISE - RateGyro & FakePope)" /*Paul*/,
+				"1949e (Viyella's Scream - Timbo)",
+				"2789 quo vadis"
+			];
+
+			foreach (var songName in songNames)
+			{
+				var mapPath = Path.Combine(songFolder, songName);
+				if (!Directory.Exists(mapPath))
+				{
+					Console.WriteLine($"Map {songName} ({mapPath}) doesn't exist!");
+					continue;
+				}
+
+				var sw = Stopwatch.StartNew();
+				maps.Add(new FolderMapProvider(mapPath));
+			}
 		}
 
-		string songFolder = Path.Combine(beatsaberPath, "Beat Saber_Data", "CustomLevels");
-		string[] songNames = ["1ca11 (Odo - CoolingCloset)", "1d1dc (RISE - RateGyro & FakePope)" /*Paul*/, "1949e (Viyella's Scream - Timbo)", "2789 quo vadis"];
-
-		var scores = songNames.SelectMany(songName =>
+		var scores = maps.SelectMany(song =>
 		{
-			var mapPath = Path.Combine(songFolder, songName);
-			if (!Directory.Exists(mapPath))
-			{
-				Console.WriteLine($"Map {songName} ({mapPath}) doesn't exist!");
-				return Enumerable.Empty<DebugSongScore>();
-			}
-
-			Console.WriteLine($"{songName}:");
+			Console.WriteLine($"{song}:");
 
 			var sw = Stopwatch.StartNew();
-			var maps = BSMapIO.Read(mapPath);
+			var maps = BSMapIO.Read(song);
 			//Console.WriteLine("Parsing: {0}ms", sw.ElapsedMilliseconds);
 
 			return maps.Select(map =>
@@ -54,7 +76,7 @@ public class Program
 			}).Where(score => score is not null);
 		});
 
-		var json = System.Text.Json.JsonSerializer.Serialize(scores, new JsonSerializerOptions()
+		var json = JsonSerializer.Serialize(scores, new JsonSerializerOptions()
 		{
 			Converters = {
 				new TimeSpanConverter()

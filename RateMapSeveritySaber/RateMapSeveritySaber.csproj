@@ -11,7 +11,7 @@
 		<PackageProjectUrl>https://github.com/Splamy/RateMapSeveritySaber</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/Splamy/RateMapSeveritySaber</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<Version>1.1.0</Version>
+		<Version>1.1.1</Version>
 		<Nullable>enable</Nullable>
 		<LangVersion>12</LangVersion>
 
@@ -26,7 +26,7 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Condition="'$(TargetFramework)' != 'net5.0'" Include="System.Text.Json" Version="8.0.3" />
+		<PackageReference Condition="'$(TargetFramework)' != 'net8.0'" Include="System.Text.Json" Version="8.0.3" />
 	</ItemGroup>
 
 </Project>

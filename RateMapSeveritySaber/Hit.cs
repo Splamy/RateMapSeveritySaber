@@ -102,25 +102,54 @@ namespace RateMapSeveritySaber
 			{
 				HitCoefficient = coefficient,
 			};
-		}
 
-		private static (Hit, Hit) GetMaxDistNotes(IList<Hit> hits)
-		{
-			(Hit a, Hit b) maxTup = (hits[0], hits[1]);
-			float maxDist = maxTup.a.Start.Distance(maxTup.b.End);
-			foreach (var noteA in hits)
-				foreach (var noteB in hits)
+
+			static (Hit, Hit) GetMaxDistNotes(IList<Hit> hits)
+			{
+				// If there are more than 16 notes, we only consider the 4 most extreme notes.
+				// This is to prevent the algorithm from taking too long.
+				if (hits.Count > 16)
 				{
-					if (noteA == noteB)
-						continue;
-					var checkDist = noteA.Start.Distance(noteB.End);
-					if (checkDist > maxDist)
+					Hit minX = hits[0];
+					Hit maxX = hits[0];
+					Hit minY = hits[0];
+					Hit maxY = hits[0];
+
+					foreach (var note in hits)
 					{
-						maxTup = (noteA, noteB);
-						maxDist = checkDist;
+						if (note.Start.X < minX.Start.X)
+							minX = note;
+						if (note.Start.X > maxX.Start.X)
+							maxX = note;
+						if (note.Start.Y < minY.Start.Y)
+							minY = note;
+						if (note.Start.Y > maxY.Start.Y)
+							maxY = note;
+					}
+
+					hits = [minX, maxX, minY, maxY ];
+				}
+
+				(Hit a, Hit b) maxTup = (hits[0], hits[1]);
+				float maxDist = maxTup.a.Start.DistanceSQ(maxTup.b.End);
+				foreach (var noteA in hits)
+				{
+					foreach (var noteB in hits)
+					{
+						if (noteA == noteB)
+						{
+							continue;
+						}
+						var checkDist = noteA.Start.DistanceSQ(noteB.End);
+						if (checkDist > maxDist)
+						{
+							maxTup = (noteA, noteB);
+							maxDist = checkDist;
+						}
 					}
 				}
-			return maxTup;
+				return maxTup;
+			}
 		}
 
 		private static float DistanceToLine(Vector2 start, Vector2 end, Vector2 point)

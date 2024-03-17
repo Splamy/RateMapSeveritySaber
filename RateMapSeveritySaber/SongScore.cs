@@ -9,20 +9,15 @@ namespace RateMapSeveritySaber
 		public override string ToString() => $"~{Average} ^{Max}";
 	}
 
-	public class DebugSongScore
+	public record DebugSongScore
 	{
 		public string? Name { get; set; }
 		public string? DifficultyName { get; set; }
 		public DebugHitScore[]? DataRed { get; set; }
 		public DebugHitScore[]? DataBlue { get; set; }
-
-		public DebugSongScore()
-		{
-
-		}
 	}
 
-	public class DebugHitScore : IScoredHit
+	public record DebugHitScore : IScoredHit
 	{
 		public float HitDifficulty { get; set; }
 		public float ContinuousDifficulty { get; set; }

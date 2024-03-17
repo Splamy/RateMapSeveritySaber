@@ -2,20 +2,11 @@ using System;
 
 namespace RateMapSeveritySaber
 {
-	public class SongScore
+	public record SongScore(float Average, float Max, AggregatedHit[] Graph)
 	{
-		public float Average { get; }
-		public float Max { get; }
-		public AggregatedHit[] Graph { get; }
+		public static readonly SongScore Empty = new(0, 0, []);
 
 		public override string ToString() => $"~{Average} ^{Max}";
-
-		public SongScore(float average, float max, AggregatedHit[] graph)
-		{
-			Average = average;
-			Max = max;
-			Graph = graph;
-		}
 	}
 
 	public class DebugSongScore

@@ -38,7 +38,7 @@ namespace RateMapSeveritySaber
 				note.Position() + .5f + note.Rotation() * .5f,
 				note.Time,
 				map.BeatTimeToRealTime(note.Time),
-				new List<JsonNote> { note }
+				[note]
 			);
 		}
 
@@ -67,9 +67,7 @@ namespace RateMapSeveritySaber
 			if (angle > BSMath.PI / 2 && angle < BSMath.PI / 2 * 3)
 			{
 				mainHit = -mainHit;
-				var tmp = end;
-				end = start;
-				start = tmp;
+				(start, end) = (end, start);
 			}
 
 			// Calculating the coefficient for the swing difficulty

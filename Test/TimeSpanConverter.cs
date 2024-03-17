@@ -1,13 +1,8 @@
 using System;
-using System.Buffers;
 using System.Buffers.Text;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace RateMapSeveritySaber
 {
@@ -25,7 +20,7 @@ namespace RateMapSeveritySaber
 			Span<byte> output = stackalloc byte[MaximumTimeSpanFormatLength];
 			bool result = Utf8Formatter.TryFormat(value, output, out int bytesWritten, 'c');
 			Debug.Assert(result);
-			writer.WriteStringValue(output.Slice(0, bytesWritten));
+			writer.WriteStringValue(output[..bytesWritten]);
 		}
 	}
 }

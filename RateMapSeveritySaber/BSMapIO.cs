@@ -12,8 +12,6 @@ namespace RateMapSeveritySaber
 	// ReSharper disable once ClassNeverInstantiated.Global
 	public class BSMapIO
 	{
-		public delegate Stream? FileProvider(string file);
-
 		public static List<BSMap> ReadZip(string file)
 		{
 			using var fs = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -45,10 +43,9 @@ namespace RateMapSeveritySaber
 		public static List<BSMap> Read(string folder)
 			=> Read(FolderProvider(folder));
 
-		public static List<BSMap> Read(FileProvider fileProvider)
+		public static List<BSMap> Read(BsMapProvider fileProvider)
 		{
-			JsonInfo? info = ReadInfo(fileProvider);
-			if (info is null) throw new Exception("Found no info file");
+			var info = ReadInfo(fileProvider) ?? throw new Exception("Found no info file");
 
 			var maps = new List<BSMap>();
 
@@ -58,7 +55,7 @@ namespace RateMapSeveritySaber
 				for (int difficultyIndex = 0; difficultyIndex < set.DifficultyBeatmaps.Length; difficultyIndex++)
 				{
 					var mapj = set.DifficultyBeatmaps[difficultyIndex];
-					using var fs = fileProvider(mapj.BeatmapFilename);
+					using var fs = fileProvider.Get(mapj.BeatmapFilename);
 					if (fs is null) continue;
 					var file = ReadAll(fs);
 					var map = JsonSerializer.Deserialize<JsonMap>(file);
@@ -82,36 +79,17 @@ namespace RateMapSeveritySaber
 		public static JsonInfo? ReadInfo(string folder)
 			=> ReadInfo(FolderProvider(folder));
 
-		public static JsonInfo? ReadInfo(FileProvider fileProvider)
+		public static JsonInfo? ReadInfo(BsMapProvider fileProvider)
 		{
-			using var fs = fileProvider("info.dat") ?? fileProvider("info.json");
+			using var fs = fileProvider.GetInfoFile();
 			if (fs is null) return null;
 			var file = ReadAll(fs);
 			return JsonSerializer.Deserialize<JsonInfo>(file);
 		}
 
-		public static FileProvider FolderProvider(string folder)
-		{
-			return file =>
-			{
-				var path = Path.Combine(folder, file);
-				if (File.Exists(path))
-					return File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-				else
-					return null;
-			};
-		}
+		public static BsMapProvider FolderProvider(string folder) => new FolderMapProvider(folder);
 
-		public static FileProvider ZipProvider(ZipArchive zip)
-		{
-			return file =>
-			{
-				var infoE = zip.Entries.FirstOrDefault(e => e.Name.Equals(file, StringComparison.OrdinalIgnoreCase));
-				if (infoE is null)
-					return null;
-				return infoE.Open();
-			};
-		}
+		public static BsMapProvider ZipProvider(ZipArchive zip) => new PlainZipMapProvider(zip);
 
 		private static byte[] ReadAll(Stream stream)
 		{

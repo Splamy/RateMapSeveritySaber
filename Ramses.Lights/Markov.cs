@@ -26,9 +26,13 @@ Contributors:
     Zac Gross
  */
 
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Ramses.Lights;
 
@@ -40,7 +44,8 @@ namespace Ramses.Lights;
 /// Initializes a new instance of the <see cref="ChainState{T}"/> class with the specified items.
 /// </remarks>
 /// <param name="items">An array of <typeparamref name="T"/> items to be copied as a single state.</param>
-public readonly struct ChainState<T>(ReadOnlyMemory<T> items) : IEquatable<ChainState<T>> where T : notnull, IEquatable<T>
+public readonly struct ChainState<T>(ReadOnlyMemory<T> items) : IEquatable<ChainState<T>>, IComparable<ChainState<T>>
+	where T : notnull, IEquatable<T>, IComparable<T>
 {
 	public static ChainState<T> Empty { get; } = new ChainState<T>(ReadOnlyMemory<T>.Empty);
 
@@ -96,12 +101,39 @@ public readonly struct ChainState<T>(ReadOnlyMemory<T> items) : IEquatable<Chain
 
 		return hash.ToHashCode();
 	}
+
+	public int CompareTo(ChainState<T> other)
+	{
+		if (_items.Length != other._items.Length)
+		{
+			return _items.Length.CompareTo(other._items.Length);
+		}
+
+		for (var i = 0; i < _items.Length && i < other._items.Length; i++)
+		{
+			var cmp = Comparer<T>.Default.Compare(_items.Span[i], other._items.Span[i]);
+			if (cmp != 0)
+			{
+				return cmp;
+			}
+		}
+		return 0;
+	}
 }
 
 public readonly struct Weigths<T>
 {
 	public ImmutableArray<(long Weight, T Key)> Values { get; }
 	public long WeightsSum { get; }
+
+
+	public Weigths(IEnumerable<KeyValuePair<T, int>> weights)
+	{
+		Values = weights
+			.Select(kv => ((long)kv.Value, kv.Key))
+			.ToImmutableArray();
+		WeightsSum = Values.Sum(kv => kv.Weight);
+	}
 
 	public Weigths(IEnumerable<KeyValuePair<T, long>> weights)
 	{
@@ -112,9 +144,9 @@ public readonly struct Weigths<T>
 	}
 }
 
-public class MarkovBuilder<T> where T : IEquatable<T>
+public class MarkovBuilder<T> where T : IEquatable<T>, IComparable<T>
 {
-	private readonly Dictionary<ChainState<T>, Dictionary<T, long>> items = [];
+	private readonly Dictionary<ChainState<T>, WeigthsBuilder<T>> items = [];
 	public int Order { get; }
 
 	public MarkovBuilder(int order)
@@ -129,7 +161,7 @@ public class MarkovBuilder<T> where T : IEquatable<T>
 	/// </summary>
 	/// <param name="items">The items to add to the generator.</param>
 	/// <param name="weight">The weight at which to add the items.</param>
-	public void AddPhrase(ReadOnlyMemory<T> items, long weight = 1)
+	public void AddPhrase(ReadOnlyMemory<T> items, int weight = 1)
 	{
 		if (items.Length == 0)
 		{
@@ -159,7 +191,7 @@ public class MarkovBuilder<T> where T : IEquatable<T>
 	/// This method does not add all of the preceding states to the generator.
 	/// Notably, the empty state is not added, unless the <paramref name="previous"/> parameter is empty.
 	/// </remarks>
-	public void AddNgram(ReadOnlyMemory<T> previous, T item, long weight = 1)
+	public void AddNgram(ReadOnlyMemory<T> previous, T item, int weight = 1)
 	{
 		ArgumentNullException.ThrowIfNull(previous);
 
@@ -186,50 +218,178 @@ public class MarkovBuilder<T> where T : IEquatable<T>
 	/// of the specified state transition.  This can therefore be used to remove items from
 	/// the generator. The resulting weight will never be allowed below zero.
 	/// </remarks>
-	public virtual void AddNgram(ChainState<T> state, T next, long weight = 1)
+	public virtual void AddNgram(ChainState<T> state, T next, int weight = 1)
 	{
 		ref var weights = ref CollectionsMarshal.GetValueRefOrAddDefault(items, state, out _);
-		weights ??= [];
+		weights ??= new WeigthsBuilder<T>();
 
-		ref var curWeight = ref CollectionsMarshal.GetValueRefOrAddDefault(weights, next, out _);
-		curWeight += weight;
+		weights.Add(next, weight);
 	}
 
 	public void Include(MarkovBuilder<T> chain)
 	{
 		foreach (var state in chain.items)
 		{
-			foreach (var item in state.Value)
+			ref var weights = ref CollectionsMarshal.GetValueRefOrAddDefault(items, state.Key, out _);
+			weights ??= new WeigthsBuilder<T>();
+
+			foreach (var item in state.Value.Get())
 			{
-				AddNgram(state.Key, item.Key, item.Value);
+				weights.Add(item.Key, item.Value);
 			}
 		}
 	}
 
-	public void AddPhrasesParallel(IEnumerable<ReadOnlyMemory<T>> dataset, long weight = 1)
-	{
-		var builder = FromPhrasesParallel(dataset, Order, weight);
-		Include(builder);
-	}
+	//public void AddPhrasesParallel(IEnumerable<ReadOnlyMemory<T>> dataset, int weight = 1)
+	//{
+	//	var builder = FromPhrasesParallel(dataset, Order, weight);
+	//	Include(builder);
+	//}
 
-	public static MarkovBuilder<T> FromPhrasesParallel(IEnumerable<ReadOnlyMemory<T>> dataset, int order, long weight = 1)
+	public static MarkovChain<T> FromPhrasesParallel(IEnumerable<ReadOnlyMemory<T>> dataset, int order, int weight = 1)
 	{
-		return dataset
+		ConcurrentBag<MarkovBuilder<T>> builderPool = [.. Enumerable.Range(0, Environment.ProcessorCount).Select(_ => new MarkovBuilder<T>(order))];
+
+		Parallel.ForEach(dataset, phrase =>
+		{
+			if (!builderPool.TryTake(out var builder))
+				builder = new MarkovBuilder<T>(order);
+
+			builder.AddPhrase(phrase, weight);
+
+			builderPool.Add(builder);
+		});
+
+		var sw = Stopwatch.StartNew();
+		var mergedElements = builderPool
+			.SelectMany(x => x.items)
 			.AsParallel()
-			.AsUnordered()
-			//.WithDegreeOfParallelism(1)
-			.Aggregate(
-				() => new MarkovBuilder<T>(order),
-				(acc, item) => { acc.AddPhrase(item, weight); return acc; },
-				(acc, agg) => { acc.Include(agg); return acc; },
-				acc => acc
-			);
+			.GroupBy(x => x.Key, x => x.Value)
+			.Select(x =>
+				KeyValuePair.Create(
+					x.Key,
+					new Weigths<T>(x
+						.Aggregate((acc, w) =>
+						{
+							foreach (var item in w.Get())
+							{
+								acc.Add(item.Key, item.Value);
+							}
+							return acc;
+						})
+						.Get()
+						//.Where(kv => kv.Value > 0)
+					)
+				)
+			)
+			//.Where(kv => kv.Value.WeightsSum > 0)
+			.ToFrozenDictionary();
+
+		return new MarkovChain<T>(mergedElements, order);
+
+		//Console.WriteLine("Sorted in {0}ms", sw.ElapsedMilliseconds);
+
+		//// Merge consecutive elements with the same key
+		//sw.Restart();
+
+		//var mergedElements = new List<KeyValuePair<ChainState<T>, WeigthsBuilder<T>>>();
+		//var current = sortedElements[0];
+		//for (var i = 1; i < sortedElements.Count; i++)
+		//{
+		//	var next = sortedElements[i];
+		//	if (current.Key.Equals(next.Key))
+		//	{
+		//		foreach (var item in next.Value.Get())
+		//		{
+		//			current.Value.Add(item.Key, item.Value);
+		//		}
+		//	}
+		//	else
+		//	{
+		//		mergedElements.Add(current);
+		//		current = next;
+		//	}
+		//}
+		//mergedElements.Add(current);
+
+		Console.WriteLine("Merged in {0}ms", sw.ElapsedMilliseconds);
+
+		//sw.Restart();
+		//var finalBuild = new MarkovBuilder<T>(order);
+
+		//foreach (var (key, value) in mergedElements)
+		//{
+		//	foreach (var item in value.Get())
+		//	{
+		//		finalBuild.AddNgram(key, item.Key, item.Value);
+		//	}
+		//}
+		//Console.WriteLine("Finalized in {0}ms", sw.ElapsedMilliseconds);
+
+		//return finalBuild;
+
+		//foreach (var builder in builderPool)
+		//{
+		//	var swx = Stopwatch.StartNew();
+		//	var sortedList = builder.items.OrderBy(x => x.Key).ToList();
+		//	Console.WriteLine("Sorted in {0}ms", swx.ElapsedMilliseconds);
+		//}
+
+		//var sortedChunks = builderPool.Select(builder =>
+		//{
+		//	var swx = Stopwatch.StartNew();
+		//	var sortedList = builder.items.OrderBy(x => x.Key).ToList();
+		//	Console.WriteLine("Sorted in {0}ms", swx.ElapsedMilliseconds);
+		//	return sortedList;
+		//});
+		//var indexes = sortedChunks.Select(x => 0).ToArray();
+
+		//// Merge Lists
+		//var finalBuilder = new MarkovBuilder<T>(order);
+		//while(true)
+		//{
+
+		//}
+
+
+		//var sw = Stopwatch.StartNew();
+		//var linAgg = builderPool.Aggregate((acc, agg) =>
+		//{
+		//	acc.Include(agg);
+		//	return acc;
+		//});
+		//Console.WriteLine("Linear Aggregation in {0}ms", sw.ElapsedMilliseconds);
+
+		//return linAgg;
+
+		//return dataset
+		//	.AsParallel()
+		//	.AsUnordered()
+		//	//.WithDegreeOfParallelism(1)
+		//	.Aggregate(
+		//		() => new MarkovBuilder<T>(order),
+		//		(acc, item) => { acc.AddPhrase(item, weight); return acc; },
+		//		(acc, agg) =>
+		//		{
+		//			Console.WriteLine("Aggregating {0} count into {1} count", agg.items.Count, acc.items.Count);
+		//			var sw = Stopwatch.StartNew();
+		//			//var sortedList = agg.items.OrderBy(x => x.Key).ToList();
+		//			//Console.WriteLine("Sorted in {0}ms", sw.ElapsedMilliseconds);
+
+		//			sw.Restart();
+		//			acc.Include(agg);
+		//			Console.WriteLine("Included in {0}ms", sw.ElapsedMilliseconds);
+		//			return acc;
+		//		},
+		//		acc => acc
+		//	);
+
 	}
 
 	public MarkovChain<T> Build()
 	{
 		var frozenItems = items
-			.Select(weigths => KeyValuePair.Create(weigths.Key, new Weigths<T>(weigths.Value.Where(kv => kv.Value > 0))))
+			.Select(weigths => KeyValuePair.Create(weigths.Key, new Weigths<T>(weigths.Value.Get().Where(kv => kv.Value > 0))))
 			.Where(kv => kv.Value.WeightsSum > 0)
 			.ToFrozenDictionary();
 
@@ -237,13 +397,65 @@ public class MarkovBuilder<T> where T : IEquatable<T>
 	}
 }
 
+class WeigthsBuilder<T> where T : notnull, IEquatable<T>
+{
+	const int SmallDictSize = 16;
+
+	public BufferDict SmallDict;
+	public Dictionary<T, int>? Dict;
+	public int SmallDictCount = 0;
+
+	public void Add(T key, int weight)
+	{
+		if (Dict == null)
+		{
+			for (var i = 0; i < SmallDictCount; i++)
+			{
+				ref var x = ref Unsafe.Add(ref SmallDict._element0, i);
+
+				if (x.Key.Equals(key))
+				{
+					x = KeyValuePair.Create(key, SmallDict[i].Value + weight);
+					return;
+				}
+			}
+
+			if (SmallDictCount < SmallDictSize)
+			{
+				SmallDict[SmallDictCount] = KeyValuePair.Create(key, weight);
+				SmallDictCount++;
+				return;
+			}
+
+			Dict = new(SmallDictSize * 2);
+			for (var i = 0; i < SmallDictSize; i++)
+			{
+				ref var x = ref Unsafe.Add(ref SmallDict._element0, i);
+				Dict.Add(x.Key, x.Value);
+			}
+		}
+
+		ref var curWeight = ref CollectionsMarshal.GetValueRefOrAddDefault(Dict, key, out _);
+		curWeight += weight;
+	}
+
+	public IEnumerable<KeyValuePair<T, int>> Get() => Dict != null ? Dict : SmallDict[..].ToArray()!;
+
+	[System.Runtime.CompilerServices.InlineArray(SmallDictSize)]
+	public struct BufferDict
+	{
+		public KeyValuePair<T, int> _element0;
+	}
+}
+
+
 /// <summary>
 /// Builds and walks interconnected states based on a weighted probability.
 /// </summary>
 /// <typeparam name="T">The type of the constituent parts of each state in the Markov chain.</typeparam>
-public class MarkovChain<T> where T : IEquatable<T>
+public class MarkovChain<T> where T : IEquatable<T>, IComparable<T>
 {
-	private readonly FrozenDictionary<ChainState<T>, Weigths<T>> _items;
+	public FrozenDictionary<ChainState<T>, Weigths<T>> Items { get; }
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="MarkovChain{T}"/> class.
@@ -261,7 +473,7 @@ public class MarkovChain<T> where T : IEquatable<T>
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(order);
 
-		_items = items;
+		Items = items;
 		Order = order;
 	}
 
@@ -344,11 +556,11 @@ public class MarkovChain<T> where T : IEquatable<T>
 	/// </summary>
 	/// <param name="state">The state preceding the items of interest.</param>
 	/// <returns>A dictionary of the items and their weight.</returns>
-	public Weigths<T>? GetNextStates(ChainState<T> state) => _items.TryGetValue(state, out var w) ? w : null;
+	public Weigths<T>? GetNextStates(ChainState<T> state) => Items.TryGetValue(state, out var w) ? w : null;
 
 	/// <summary>
 	/// Gets all of the states that exist in the generator.
 	/// </summary>
 	/// <returns>An enumerable collection of <see cref="ChainState{T}"/> containing all of the states in the generator.</returns>
-	public virtual IEnumerable<ChainState<T>> GetStates() => _items.Keys;
+	public virtual IEnumerable<ChainState<T>> GetStates() => Items.Keys;
 }

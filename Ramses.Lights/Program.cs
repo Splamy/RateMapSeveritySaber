@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using ObjectLayoutInspector;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -27,6 +28,8 @@ public class Program
 {
 	private static async Task Main(string[] args)
 	{
+		//TypeLayout.PrintLayout<Dictionary<ChainState<LightToken>, int>>();
+		//return;
 		//await MapSelector.ChunkMpackFile(5_000);
 		//await MapSelector.RunToMempack();
 
@@ -47,6 +50,8 @@ public class Program
 		await Console.Out.WriteLineAsync(dataset.Sum(x => x.Count).ToString());
 
 		var tokens = new LightToken[dataset.Count][];
+
+		sw.Restart();
 
 		Parallel.ForEach(dataset.Select((m, i) => (m, i)), mi =>
 		{
@@ -97,7 +102,7 @@ public class Program
 		sw.Restart();
 		Console.WriteLine("Learning");
 
-		var markB = MarkovBuilder<LightToken>.FromPhrasesParallel(tokens.Select(x => (ReadOnlyMemory<LightToken>)x), 2);
+		var mark = MarkovBuilder<LightToken>.FromPhrasesParallel(tokens.Select(x => (ReadOnlyMemory<LightToken>)x), 2);
 		//var markB = new MarkovBuilder<LightToken>(2);
 		//foreach (var token in tokens)
 		//{
@@ -108,7 +113,19 @@ public class Program
 
 		sw.Restart();
 
-		var mark = markB.Build();
+		//var mark = markB.Build();
+
+		//var mostCommonWeigth = mark.Items.SelectMany(x => x.Value.Values).MaxBy(x => x.Weight);
+
+		//var uniqueTokens = tokens.SelectMany(x => x).ToHashSet();
+
+		//var uniqueTokensWithoutTime = uniqueTokens.Select(x => new LightToken(x.Type, 0, x.Value, x.FloatValue, x.Combo)).ToHashSet();
+
+		//var hist = mark.Items
+		//	.GroupBy(x => x.Value.Values.Length)
+		//	.Select(x => (x.Key, Count: x.Count()))
+		//	.OrderByDescending(x => x.Count)
+		//	.ToList();
 
 		Console.WriteLine("Build Model: {0}s", sw.Elapsed.TotalSeconds);
 
@@ -123,7 +140,8 @@ public class Program
 }
 
 [StructLayout(LayoutKind.Explicit)]
-public readonly struct LightToken(byte type, byte time, ushort value, bool floatValue, bool combo) : IEquatable<LightToken>
+public readonly struct LightToken(byte type, byte time, ushort value, bool floatValue, bool combo)
+	: IEquatable<LightToken>, IComparable<LightToken>
 {
 	public const byte TimeMax = 12;
 
@@ -175,4 +193,6 @@ public readonly struct LightToken(byte type, byte time, ushort value, bool float
 	public override bool Equals(object? obj) => obj is LightToken other && Equals(other);
 
 	public override int GetHashCode() => _data.GetHashCode();
+
+	public int CompareTo(LightToken other) => _data.CompareTo(other._data);
 }

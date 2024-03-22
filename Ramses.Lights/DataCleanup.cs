@@ -7,7 +7,7 @@ public class DataCleanup
 {
 	private static int processed = 0;
 
-	private static JsonSerializerOptions JsonSerializerOptions = new()
+	private static readonly JsonSerializerOptions JsonSerializerOptions = new()
 	{
 		WriteIndented = false
 	};

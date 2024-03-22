@@ -1,11 +1,5 @@
-using MarkovSharp;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using ObjectLayoutInspector;
 using System.Diagnostics;
-using System.Numerics;
-using System.Runtime.InteropServices;
-using System.Text.Json;
 
 namespace Ramses.Lights;
 
@@ -41,7 +35,8 @@ public class Program
 		sw.Restart();
 		var dataset = await MapSelector.ReadMpack<List<List<LightEvent>>>(0);
 
-		Parallel.ForEach(dataset, m => {
+		Parallel.ForEach(dataset, m =>
+		{
 			m.RemoveAll(e => e.Type is 10 or 14 or 15 || e.Value is < 0 or > ushort.MaxValue);
 		});
 		dataset.RemoveAll(m => m.Count == 0);

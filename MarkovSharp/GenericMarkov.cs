@@ -22,7 +22,7 @@ namespace MarkovSharp;
 /// <typeparam name="TUnigram">The type representing a unigram, or state</typeparam>
 public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase, TUnigram>
 {
-	private readonly ILogger Logger;
+	protected readonly ILogger Logger;
 
 	protected GenericMarkov(ILogger logger, int level = 2)
 	{
@@ -33,8 +33,8 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 
 		Chain = new MarkovChain<TUnigram>();
 		UnigramSelector = new WeightedRandomUnigramSelector<TUnigram>();
-		SourcePhrases = new List<TPhrase>();
-		this.Logger = logger;
+		SourcePhrases = [];
+		Logger = logger;
 		Level = level;
 		EnsureUniqueWalk = false;
 	}
@@ -82,19 +82,19 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 	//suggesting the next state
 	public int Level { get; private set; }
 
-	public void Learn(IEnumerable<TPhrase> phrases, bool ignoreAlreadyLearnt = true)
+	public void Learn(IReadOnlyCollection<TPhrase> phrases, bool ignoreAlreadyLearnt = true)
 	{
 		if (ignoreAlreadyLearnt)
 		{
 			var newTerms = phrases.Where(s => !SourcePhrases.Contains(s));
 
-			Logger.LogInformation($"Learning {newTerms.Count()} lines");
+			Logger.LogInformation("Learning {NewTermsCount} lines", newTerms.Count());
 			// For every sentence which hasnt already been learnt, learn it
 			Parallel.ForEach(phrases, Learn);
 		}
 		else
 		{
-			Logger.LogInformation($"Learning {phrases.Count()} lines");
+			Logger.LogInformation("Learning {PhrasesCount} lines", phrases.Count);
 			// For every sentence, learn it
 			Parallel.ForEach(phrases, Learn);
 		}
@@ -102,7 +102,7 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 
 	public void Learn(TPhrase phrase)
 	{
-		Logger.LogInformation($"Learning phrase: '{phrase}'");
+		Logger.LogInformation("Learning phrase: '{Phrase}'", phrase);
 		if (phrase == null || phrase.Equals(default(TPhrase)))
 		{
 			return;
@@ -111,7 +111,7 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 		// Ignore particularly short phrases
 		if (SplitTokens(phrase).Count() < Level)
 		{
-			Logger.LogInformation($"Phrase {phrase} too short - skipped");
+			Logger.LogInformation("Phrase {Phrase} too short - skipped", phrase);
 			return;
 		}
 
@@ -119,7 +119,7 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 		// when learning in future
 		if (!SourcePhrases.Contains(phrase))
 		{
-			Logger.LogDebug($"Adding phrase {phrase} to source lines");
+			Logger.LogDebug("Adding phrase {Phrase} to source lines", phrase);
 			SourcePhrases.Add(phrase);
 		}
 
@@ -135,18 +135,18 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 			try
 			{
 				previous = tokens[tokens.Length - j];
-				Logger.LogDebug($"Adding TGram ({typeof(TUnigram)}) {previous} to lastCol");
+				Logger.LogDebug("Adding TGram ({TUnigram}) {Previous} to lastCol", typeof(TUnigram), previous);
 				lastCol.Add(previous);
 			}
 			catch (IndexOutOfRangeException e)
 			{
-				Logger.LogWarning($"Caught an exception: {e}");
+				Logger.LogWarning(e, "Caught an exception");
 				previous = GetPrepadUnigram();
 				lastCol.Add(previous);
 			}
 		}
 
-		Logger.LogDebug($"Reached final key for phrase {phrase}");
+		Logger.LogDebug("Reached final key for phrase {Phrase}", phrase);
 		var finalKey = new NgramContainer<TUnigram>(lastCol);
 		Chain.AddOrCreate(finalKey, GetTerminatorUnigram());
 	}
@@ -206,7 +206,7 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 			throw new ArgumentException("Invalid argument - retrain level must be a positive integer", nameof(newLevel));
 		}
 
-		Logger.LogInformation($"Retraining model as level {newLevel}");
+		Logger.LogInformation("Retraining model as level {NewLevel}", newLevel);
 		Level = newLevel;
 
 		// Empty the model so it can be rebuilt
@@ -223,14 +223,14 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 	/// <param name="lines">The number of phrases to emit</param>
 	/// <param name="seed">Optionally provide the start of the phrase to generate from</param>
 	/// <returns></returns>
-	public IEnumerable<TPhrase> Walk(int lines = 1, TPhrase seed = default(TPhrase))
+	public IEnumerable<TPhrase> Walk(int lines = 1, TPhrase seed = default)
 	{
 		if (seed == null)
 		{
-			seed = RebuildPhrase(new List<TUnigram>() { GetPrepadUnigram() });
+			seed = RebuildPhrase([GetPrepadUnigram()]);
 		}
 
-		Logger.LogInformation($"Walking to return {lines} phrases from {Chain.Count} states");
+		Logger.LogInformation("Walking to return {Lines} phrases from {ChainCount} states", lines, Chain.Count);
 		if (lines < 1)
 		{
 			throw new ArgumentException("Invalid argument - line count for walk must be a positive integer", nameof(lines));
@@ -244,7 +244,9 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 		{
 			if (genCount == lines * 10)
 			{
-				Logger.LogInformation($"Breaking out of walk early - {genCount} generations did not produce {lines} distinct lines ({sentences.Count} were created)");
+				Logger.LogInformation(
+					"Breaking out of walk early - {GenCount} generations did not produce {Lines} distinct lines ({SentencesCount} were created)",
+					genCount, lines, sentences.Count);
 				break;
 			}
 			var result = WalkLine(seed);
@@ -270,7 +272,7 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 
 		// Allocate a queue to act as the memory, which is n 
 		// levels deep of previous words that were used
-		var q = new Queue(paddedSeed);
+		var q = new Queue<TUnigram>(paddedSeed);
 
 		// If the start of the generated text has been seeded,
 		// append that before generating the rest
@@ -282,7 +284,7 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 		while (built.Count < 1500)
 		{
 			// Choose a new token to add from the model
-			var key = new NgramContainer<TUnigram>(q.Cast<TUnigram>());
+			var key = new NgramContainer<TUnigram>(q);
 			if (Chain.Contains(key))
 			{
 				TUnigram chosen;
@@ -314,11 +316,11 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 	public List<TUnigram> GetMatches(TPhrase input)
 	{
 		var inputArray = SplitTokens(input).ToArray();
-		if (inputArray.Count() > Level)
+		if (inputArray.Length > Level)
 		{
 			inputArray = inputArray.Skip(inputArray.Length - Level).ToArray();
 		}
-		else if (inputArray.Count() < Level)
+		else if (inputArray.Length < Level)
 		{
 			inputArray = PadArrayLow(inputArray);
 		}
@@ -331,7 +333,9 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 			chosen = Chain.GetValuesForKey(key);
 		}
 		catch (KeyNotFoundException e)
-		{ }
+		{
+			Logger.LogWarning(e, "Caught an exception");
+		}
 
 		return chosen;
 	}
@@ -340,10 +344,7 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 	// Used when providing a seed sentence or word for generation
 	private TUnigram[] PadArrayLow(TUnigram[] input)
 	{
-		if (input == null)
-		{
-			input = new List<TUnigram>().ToArray();
-		}
+		input ??= [];
 
 		var splitCount = input.Length;
 		if (splitCount > Level)
@@ -377,14 +378,14 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 
 		var results = new List<NgramChainMatch<TPhrase>>();
 
-		for (int i = 0; i < testUnigrams.Count(); i++)
+		for (int i = 0; i < testUnigrams.Length; i++)
 		{
 			var testCase = new List<TUnigram>();
 
 			for (int j = 0; j < Level; j++)
 			{
 				var index = i + j;
-				if (index >= testUnigrams.Count())
+				if (index >= testUnigrams.Length)
 				{
 					break;
 				}
@@ -392,14 +393,14 @@ public abstract class GenericMarkov<TPhrase, TUnigram> : IMarkovStrategy<TPhrase
 				testCase.Add(testUnigrams[i + j]);
 			}
 
-			if (testCase.Count() == Level)
+			if (testCase.Count == Level)
 			{
 				var testPhrase = RebuildPhrase(testCase);
 
 				try
 				{
 					var testResults = GetMatches(testPhrase);
-					if (testResults.Any())
+					if (testResults.Count != 0)
 					{
 						results.Add(new NgramChainMatch<TPhrase>(testPhrase, true));
 					}

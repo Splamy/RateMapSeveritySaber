@@ -1,18 +1,13 @@
-// See https://aka.ms/new-console-template for more information
 using MarkovSharp;
-using MarkovSharp.Models;
-using MarkovSharp.TokenisationStrategies;
-using MemoryPack;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Ramses.Lights;
-using RateMapSeveritySaber;
-using System.Collections.Concurrent;
+using ObjectLayoutInspector;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
+
+namespace Ramses.Lights;
 
 //var mapsDir = new DirectoryInfo("F:/maps");
 
@@ -33,153 +28,119 @@ using System.Text.Json.Serialization;
 
 //return;
 
-var sw = new Stopwatch();
-
-sw.Restart();
-var dataset = await MapSelector.ReadMpack();
-Console.WriteLine("Read mpack: {0}ms", sw.Elapsed.TotalSeconds);
-
-var tokens = new LightToken[dataset.Length][];
-
-sw.Restart();
-Console.WriteLine("Tokenizing");
-
-Parallel.ForEach(dataset.Select((m, i) => (m, i)), mi =>
+public class Program
 {
-	var (m, i) = mi;
-
-	// convert to light tokens
-	// take absolute value of time and convert to invervals between each event
-
-	var lastEvent = m[0];
-	var lightTokens = new LightToken[m.Length];
-	lightTokens[0] = new LightToken
+	private static async Task Main(string[] args)
 	{
-		Time = LightToken.LightType.Slow,
-		Value = lastEvent.Value,
-		Type = lastEvent.Type,
-		FloatValue = lastEvent.FloatValue.HasValue
-	};
+		//await MapSelector.ChunkMpackFile(5_000);
+		//await MapSelector.RunToMempack();
 
-	for (int j = 1; j < m.Length; j++)
-	{
-		var currentEvent = m[j];
-		var t = currentEvent.Time - lastEvent.Time;
+		var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+		var sw = new Stopwatch();
 
-		lightTokens[j] = new LightToken
+		sw.Restart();
+		var dataset = await MapSelector.ReadMpack<List<List<LightEvent>>>(0);
+
+		Parallel.ForEach(dataset, m => {
+			m.RemoveAll(e => e.Type is 10 or 14 or 15 || e.Value is < 0 or > ushort.MaxValue);
+		});
+		dataset.RemoveAll(m => m.Count == 0);
+
+		Console.WriteLine("Read mpack: {0}ms", sw.Elapsed.TotalSeconds);
+
+		await Console.Out.WriteLineAsync(dataset.SelectMany(x => x).Count().ToString());
+
+		var tokens = new LightToken[dataset.Count][];
+
+		Parallel.ForEach(dataset.Select((m, i) => (m, i)), mi =>
 		{
-			Time = LightToken.CategorizeLightSpeed(t),
-			Type = currentEvent.Type,
-			Value = currentEvent.Value,
-			FloatValue = currentEvent.FloatValue.HasValue
-		};
+			var (m, i) = mi;
 
-		lastEvent = currentEvent;
+			// convert to light tokens
+			// take absolute value of time and convert to invervals between each event
+
+			var lightTokens = new LightToken[m.Count];
+			var times = m
+				.GroupBy(e => float.Round(e.Time, 3))
+				.ToDictionary(x => x.Key, x => x.Count());
+
+			for (int j = 0; j < m.Count - 1; j++)
+			{
+				var currentEvent = m[j];
+				var nextEvent = m[j + 1];
+
+				var t = nextEvent.Time - currentEvent.Time;
+
+				lightTokens[j] = new LightToken
+				{
+					Time = LightToken.CategorizeLightSpeed(t),
+					Type = currentEvent.Type,
+					Value = checked((ushort)currentEvent.Value),
+					FloatValue = currentEvent.HasFloatValue,
+					Combo = times[float.Round(currentEvent.Time, 3)] > 1,
+				};
+			}
+
+			lightTokens[^1] = new LightToken
+			{
+				Time = 5,
+				Value = checked((ushort)m[^1].Value),
+				Type = m[^1].Type,
+				FloatValue = m[^1].HasFloatValue,
+				Combo = times[float.Round(m[^1].Time, 3)] > 1,
+			};
+
+			tokens[i] = lightTokens;
+		});
+
+		Console.WriteLine("Tokenized: {0}ms", sw.Elapsed.TotalSeconds);
+
+		//var model = new LightMarkov(NullLogger<LightMarkov>.Instance, 2);
+
+
+		sw.Restart();
+		Console.WriteLine("Learning");
+
+		var mark = new MarkovChain<LightToken>(2);
+
+		mark.AddParallel(tokens, 1);
+
+		Console.WriteLine("Learned: {0}ms", sw.Elapsed.TotalSeconds);
+
+		//var example = model.Walk().Take(10).ToList();
+
+		// json serialize and print
+
+		//Console.WriteLine(JsonSerializer.Serialize(example));
+
+		return;
 	}
-
-	tokens[i] = lightTokens;
-});
-
-Console.WriteLine("Tokenized: {0}ms", sw.Elapsed.TotalSeconds);
-
-var model = new LightMarkov(NullLogger<LightMarkov>.Instance, 2);
-
-
-sw.Restart();
-Console.WriteLine("Learning");
-
-model.Learn(tokens);
-
-Console.WriteLine("Learned: {0}ms", sw.Elapsed.TotalSeconds);
-
-var example = model.Walk().Take(10).ToList();
-
-// json serialize and print
-
-Console.WriteLine(JsonSerializer.Serialize(example));
-
-return;
-
-/*
- light event stats:
-
-_time: 659964199
-_type: 659964199
-_value: 659964134
-_customData: 243335783
-_floatValue: 35366593
-selected: 100
-: 1
- 
- */
-
-class LightMarkov(ILogger logger, int level = 2) : GenericMarkov<LightToken[], LightToken>(logger, level)
-{
-	public override LightToken GetPrepadUnigram() => LightToken.ZeroLight;
-
-	public override LightToken GetTerminatorUnigram() => LightToken.ZeroLight;
-
-	public override LightToken[] RebuildPhrase(IEnumerable<LightToken> tokens) => tokens.ToArray();
-
-	public override IEnumerable<LightToken> SplitTokens(LightToken[] phrase) => phrase;
 }
 
-public readonly struct LightToken : IComparable<LightToken>, IEquatable<LightToken>
+public readonly record struct LightToken
 {
 	public static readonly LightToken ZeroLight = default;
 
-	public int Value { get; init; }
-	public LightType Time { get; init; }
+	public ushort Value { get; init; }
+	public byte Time { get; init; }
 	public byte Type { get; init; }
 	public bool FloatValue { get; init; }
+	public bool Combo { get; init; }
 
-	public static LightType CategorizeLightSpeed(float diff) => diff switch
+	public static byte CategorizeLightSpeed(float diff) => diff switch
 	{
-		< 0.1f => LightType.Strobo,
-		< 0.5f => LightType.Highlight,
-		_ => LightType.Slow,
+		< 0.050f => 0,
+		< 0.100f => 1,
+		< 0.200f => 2,
+		< 0.500f => 3,
+		< 1.000f => 4,
+		_ => 5
 	};
-
-	public readonly int CompareTo(LightToken other)
-	{
-		var timeComparison = Time.CompareTo(other.Time);
-		if (timeComparison != 0) return timeComparison;
-		var valueComparison = Value.CompareTo(other.Value);
-		if (valueComparison != 0) return valueComparison;
-		var typeComparison = Type.CompareTo(other.Type);
-		if (typeComparison != 0) return typeComparison;
-		return FloatValue.CompareTo(other.FloatValue);
-	}
-
-	public readonly bool Equals(LightToken other)
-	{
-		return Value == other.Value
-			&& Time == other.Time
-			&& Type == other.Type
-			&& FloatValue == other.FloatValue;
-	}
 
 	public enum LightType : byte
 	{
 		Strobo,
 		Highlight,
 		Slow
-	}
-
-	public override bool Equals(object obj)
-	{
-		return obj is LightToken other && Equals(other);
-	}
-
-	public override int GetHashCode() => HashCode.Combine(Value, Time, Type, FloatValue);
-
-	public static bool operator ==(LightToken left, LightToken right)
-	{
-		return left.Equals(right);
-	}
-
-	public static bool operator !=(LightToken left, LightToken right)
-	{
-		return !(left == right);
 	}
 }

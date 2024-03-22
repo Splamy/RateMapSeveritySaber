@@ -1,12 +1,15 @@
 using MemoryPack;
+using System;
 using System.Collections.Concurrent;
 using System.IO.Compression;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace Ramses.Lights;
-internal class MapSelector
+public class MapSelector
 {
 	private static readonly JsonSerializerOptions JsonSerializerOptions = new()
 	{
@@ -86,7 +89,7 @@ internal class MapSelector
 		ConcurrentBag<LightEvent[]> lightMaps = [];
 		int written = 0;
 
-		Parallel.ForEach(selectList.Maps, new ParallelOptions() { }, x =>
+		Parallel.ForEach(selectList.Maps, new ParallelOptions() { /*MaxDegreeOfParallelism = 1 */}, x =>
 		{
 			var w = Interlocked.Increment(ref written);
 			if (w % 100 == 0)
@@ -117,6 +120,27 @@ internal class MapSelector
 		await MemoryPackSerializer.SerializeAsync(superFile, lightMapsList);
 	}
 
+	public static async Task ChunkMpackFile(int mapCount)
+	{
+		var data = await ReadMpack<ReadOnlyMemory<LightEvent[]>>();
+
+		var chunkCnt = 0;
+
+		while (data.Length > mapCount)
+		{
+			var writeChunk = data.Length > mapCount ? mapCount : data.Length;
+			await WriteChunk(data[..writeChunk], chunkCnt);
+			data = data[writeChunk..];
+			chunkCnt++;
+		}
+
+		static async Task WriteChunk(ReadOnlyMemory<LightEvent[]> list, int chunkId)
+		{
+			using var chunkFile = File.Open($"F:/Ramses/select.v2.events.chunk{chunkId:000}.mpack", FileMode.Create, FileAccess.Write, FileShare.None);
+			await MemoryPackSerializer.SerializeAsync(chunkFile, list);
+		}
+	}
+
 	public static async Task RunCompressMpack()
 	{
 		using Stream superFile = File.OpenRead("F:/Ramses/select.v2.events.mpack");
@@ -132,17 +156,19 @@ internal class MapSelector
 		Console.WriteLine("Done compressing");
 	}
 
-	public static async Task<LightEvent[][]> ReadMpack()
+	public static async Task<TAll> ReadMpack<TAll>(int? chunk = default)
 	{
-		using var file = File.OpenRead("F:/Ramses/select.v2.events.mpack");
-		return await MemoryPackSerializer.DeserializeAsync<LightEvent[][]>(file);
-	}
+		if (chunk.HasValue)
+		{
+			using var file = File.OpenRead($"F:/Ramses/select.v2.events.chunk{chunk.Value:000}.mpack");
+			return await MemoryPackSerializer.DeserializeAsync<TAll>(file);
+		}
+		else
+		{
+			using var file = File.OpenRead("F:/Ramses/select.v2.events.mpack");
+			return await MemoryPackSerializer.DeserializeAsync<TAll>(file);
+		}
 
-	public static async Task<LightEvent[][]> ReadMpackComp()
-	{
-		using var compressedFile = File.OpenRead("F:/Ramses/select.v2.events.mpack.deflate");
-		using var gzip = new DeflateStream(compressedFile, CompressionMode.Decompress);
-		return await MemoryPackSerializer.DeserializeAsync<LightEvent[][]>(gzip);
 	}
 
 	public static List<JsonArray> Read()
@@ -153,17 +179,21 @@ internal class MapSelector
 }
 
 [MemoryPackable]
-public partial struct LightEvent
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public partial struct LightEvent()
 {
 	[JsonPropertyName("_time")]
-	public float Time { get; set; }
+	public float Time { get; set; } = 0;
 
 	[JsonPropertyName("_value")]
-	public int Value { get; set; }
-
-	[JsonPropertyName("_type")]
-	public byte Type { get; set; }
+	public int Value { get; set; } = 0;
 
 	[JsonPropertyName("_floatValue")]
-	public float? FloatValue { get; set; }
+	public float FloatValue { get; set; } = float.NaN;
+
+	[JsonPropertyName("_type")]
+	public byte Type { get; set; } = 0;
+
+	[JsonIgnore]
+	public readonly bool HasFloatValue => !float.IsNaN(FloatValue);
 }

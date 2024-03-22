@@ -17,6 +17,7 @@ public class MostPopularUnigramSelector<T> : IUnigramSelector<T>
 		foreach (var ngram in ngrams)
 		{
 			ref var cnt = ref CollectionsMarshal.GetValueRefOrAddDefault(counts, ngram, out _);
+			cnt++;
 		}
 		return counts.MaxBy(x => x.Value).Key;
 	}

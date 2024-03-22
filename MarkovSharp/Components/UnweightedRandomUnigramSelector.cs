@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 
 namespace MarkovSharp.Components;
 
@@ -14,7 +13,6 @@ public class UnweightedRandomUnigramSelector<T> : IUnigramSelector<T>
 			return default;
 		}
 		var distinctNgrams = ngrams.Distinct().ToArray();
-		var index = Random.Shared.Next(0, distinctNgrams.Length);
-		return distinctNgrams[index];
+		return distinctNgrams[Random.Shared.Next(0, distinctNgrams.Length)];
 	}
 }

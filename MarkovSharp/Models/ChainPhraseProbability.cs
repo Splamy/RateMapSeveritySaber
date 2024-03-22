@@ -1,15 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace MarkovSharp.Models;
 
-public class ChainPhraseProbability<T>
+public class ChainPhraseProbability<T>(List<NgramChainMatch<T>> raw)
 {
-	public ChainPhraseProbability(List<NgramChainMatch<T>> raw)
-	{
-		Raw = raw;
-	}
 
 	/// <summary>
 	/// The probability for this phrase to match the chain, a double between 0 and 1
@@ -19,5 +15,5 @@ public class ChainPhraseProbability<T>
 	/// <summary>
 	/// The raw ngrams in the phrase, and whether they each match or not
 	/// </summary>
-	public List<NgramChainMatch<T>> Raw { get; }
+	public List<NgramChainMatch<T>> Raw { get; } = raw;
 }

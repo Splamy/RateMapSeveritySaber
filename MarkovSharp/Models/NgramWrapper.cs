@@ -12,7 +12,7 @@ public class NgramContainer<T>
 
 	public NgramContainer(IEnumerable<T> args)
 	{
-		Ngrams = [.. args.Order()];
+		Ngrams = [.. args];
 	}
 
 	public override bool Equals(object o)
@@ -27,16 +27,14 @@ public class NgramContainer<T>
 
 	public override int GetHashCode()
 	{
-		unchecked
+		var hash = new HashCode();
+
+		foreach (var item in Ngrams)
 		{
-			int hash = 17;
-			var defaultVal = default(T);
-			foreach (var member in Ngrams.Where(a => a != null && !a.Equals(defaultVal)))
-			{
-				hash = hash * 23 + member.GetHashCode();
-			}
-			return hash;
+			hash.Add(item);
 		}
+
+		return hash.ToHashCode();
 	}
 
 	public override string ToString()

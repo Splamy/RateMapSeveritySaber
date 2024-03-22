@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Ramses.Lights;
-internal class DataCleanup
+public class DataCleanup
 {
 	private static int processed = 0;
 
@@ -152,7 +152,7 @@ internal class DataCleanup
 	}
 }
 
-class MapData
+public class MapData
 {
 	public string File { get; set; }
 	public int Version { get; set; }
@@ -167,12 +167,12 @@ class MapData
 	}
 }
 
-class SelectList
+public class SelectList
 {
 	public List<SelectMap> Maps { get; set; } = [];
 }
 
-class SelectMap
+public class SelectMap
 {
 	public string Path { get; set; }
 }

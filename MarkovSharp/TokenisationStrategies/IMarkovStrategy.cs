@@ -1,4 +1,4 @@
-﻿using MarkovSharp.Models;
+using MarkovSharp.Models;
 using System;
 using System.Collections.Generic;
 
@@ -14,13 +14,13 @@ public interface IMarkovStrategy<TPhrase, TUnigram>
 
 	TPhrase RebuildPhrase(IEnumerable<TUnigram> tokens);
 
-	void Learn(IEnumerable<TPhrase> phrases, bool ignoreAlreadyLearnt = true);
+	void Learn(IReadOnlyCollection<TPhrase> phrases, bool ignoreAlreadyLearnt = true);
 
 	void Learn(TPhrase phrase);
 
 	void Retrain(int newLevel);
 
-	IEnumerable<TPhrase> Walk(int lines = 1, TPhrase seed = default(TPhrase));
+	IEnumerable<TPhrase> Walk(int lines = 1, TPhrase seed = default);
 
 	List<TUnigram> GetMatches(TPhrase input);
 

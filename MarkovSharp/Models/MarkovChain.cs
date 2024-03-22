@@ -12,7 +12,7 @@ public class MarkovChain<T>
 	}
 
 	internal ConcurrentDictionary<NgramContainer<T>, List<T>> ChainDictionary { get; }
-	private readonly object _lockObj = new object();
+	private readonly object _lockObj = new();
 
 	/// <summary>
 	/// The number of states in the chain

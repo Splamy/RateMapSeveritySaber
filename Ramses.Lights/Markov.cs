@@ -1,10 +1,36 @@
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+// https://github.com/otac0n/markov
+
+/*
+ Copyright © 2018 John Gietzen and Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Contributors:
+    Zac Gross
+ */
+
+using System.Collections.Frozen;
 using System.Collections.Immutable;
+using System.Runtime.InteropServices;
 
 namespace Ramses.Lights;
-
 
 /// <summary>
 /// Represents a state in a Markov chain.
@@ -14,21 +40,11 @@ namespace Ramses.Lights;
 /// Initializes a new instance of the <see cref="ChainState{T}"/> class with the specified items.
 /// </remarks>
 /// <param name="items">An array of <typeparamref name="T"/> items to be copied as a single state.</param>
-public readonly struct ChainState<T>(ImmutableArray<T> items) : IEquatable<ChainState<T>>, IReadOnlyList<T> where T : notnull
+public readonly struct ChainState<T>(ReadOnlyMemory<T> items) : IEquatable<ChainState<T>> where T : notnull, IEquatable<T>
 {
-	private readonly ImmutableArray<T> _items = items;
+	public static ChainState<T> Empty { get; } = new ChainState<T>(ReadOnlyMemory<T>.Empty);
 
-	/// <summary>
-	/// Initializes a new instance of the <see cref="ChainState{T}"/> class with the specified items.
-	/// </summary>
-	/// <param name="items">An <see cref="IEnumerable{T}"/> of items to be copied as a single state.</param>
-	public ChainState(IEnumerable<T> items) : this(items.ToImmutableArray()) { }
-
-	/// <summary>
-	/// Initializes a new instance of the <see cref="ChainState{T}"/> class with the specified items.
-	/// </summary>
-	/// <param name="items">An array of <typeparamref name="T"/> items to be copied as a single state.</param>
-	public ChainState(params T[] items) : this(items.ToImmutableArray()) { }
+	private readonly ReadOnlyMemory<T> _items = items;
 
 	/// <inheritdoc />
 	public int Count => _items.Length;
@@ -37,10 +53,7 @@ public readonly struct ChainState<T>(ImmutableArray<T> items) : IEquatable<Chain
 	public bool IsReadOnly => true;
 
 	/// <inheritdoc />
-	public T this[int index]
-	{
-		get { return _items[index]; }
-	}
+	public T this[int index] => _items.Span[index];
 
 	/// <summary>
 	/// Determines whether two specified instances of <see cref="ChainState{T}"/> are not equal.
@@ -59,41 +72,24 @@ public readonly struct ChainState<T>(ImmutableArray<T> items) : IEquatable<Chain
 	public static bool operator ==(ChainState<T> a, ChainState<T> b) => a.Equals(b);
 
 	/// <inheritdoc />
-	public bool Contains(T item) => ((IList<T>)_items).Contains(item);
+	public bool Contains(T item) => _items.Span.Contains(item);
 
 	/// <inheritdoc />
-	public void CopyTo(T[] array, int arrayIndex) => _items.CopyTo(array, arrayIndex);
-
-	/// <inheritdoc />
-	public override bool Equals(object? obj)
-	{
-		if (obj is ChainState<T> chain)
-		{
-			return Equals(chain);
-		}
-
-		return false;
-	}
+	public override bool Equals(object? obj) => obj is ChainState<T> chain && Equals(chain);
 
 	/// <summary>
 	/// Indicates whether the current object is equal to another object of the same type.
 	/// </summary>
 	/// <param name="other">An object to compare with this object.</param>
 	/// <returns>true if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.</returns>
-	public bool Equals(ChainState<T> other) => _items.SequenceEqual(other._items);
-
-	/// <inheritdoc />
-	public IEnumerator<T> GetEnumerator() => ((IList<T>)_items).GetEnumerator();
-
-	/// <inheritdoc />
-	IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+	public bool Equals(ChainState<T> other) => _items.Span.SequenceEqual(other._items.Span);
 
 	/// <inheritdoc />
 	public override int GetHashCode()
 	{
 		var hash = new HashCode();
 
-		foreach (var item in _items)
+		foreach (var item in _items.Span)
 		{
 			hash.Add(item);
 		}
@@ -102,51 +98,30 @@ public readonly struct ChainState<T>(ImmutableArray<T> items) : IEquatable<Chain
 	}
 }
 
-/// <summary>
-/// Builds and walks interconnected states based on a weighted probability.
-/// </summary>
-/// <typeparam name="T">The type of the constituent parts of each state in the Markov chain.</typeparam>
-public class MarkovChain<T>
-	where T : IEquatable<T>
+public readonly struct Weigths<T>
 {
-	private readonly ConcurrentDictionary<ChainState<T>, ConcurrentDictionary<T, int>> items = [];
-	private readonly int order;
+	public ImmutableArray<(long Weight, T Key)> Values { get; }
+	public long WeightsSum { get; }
 
-	/// <summary>
-	/// Initializes a new instance of the <see cref="MarkovChain{T}"/> class.
-	/// </summary>
-	/// <param name="order">Indicates the desired order of the <see cref="MarkovChain{T}"/>.</param>
-	/// <remarks>
-	/// <para>The <paramref name="order"/> of a generator indicates the depth of its internal state.  A generator
-	/// with an order of 1 will choose items based on the previous item, a generator with an order of 2
-	/// will choose items based on the previous 2 items, and so on.</para>
-	/// <para>Zero is not classically a valid order value, but it is allowed here.  Choosing a zero value has the
-	/// effect that every state is equivalent to the starting state, and so items will be chosen based on their
-	/// total frequency.</para>
-	/// </remarks>
-	public MarkovChain(int order)
+	public Weigths(IEnumerable<KeyValuePair<T, long>> weights)
+	{
+		Values = weights
+			.Select(kv => (kv.Value, kv.Key))
+			.ToImmutableArray();
+		WeightsSum = Values.Sum(kv => kv.Weight);
+	}
+}
+
+public class MarkovBuilder<T> where T : IEquatable<T>
+{
+	private readonly Dictionary<ChainState<T>, Dictionary<T, long>> items = [];
+	public int Order { get; }
+
+	public MarkovBuilder(int order)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(order);
 
-		this.order = order;
-	}
-
-	/// <summary>
-	/// Gets the order of the chain.
-	/// </summary>
-	public int Order => order;
-
-	/// <summary>
-	/// Adds the items to the generator with a weight of one.
-	/// </summary>
-	/// <param name="items">The items to add to the generator.</param>
-	public void Add(IEnumerable<T> items) => Add(items, 1);
-
-	public void AddParallel(IEnumerable<IEnumerable<T>> dataset, int weight)
-	{
-		ArgumentNullException.ThrowIfNull(items);
-
-		Parallel.ForEach(dataset, items => Add(items, weight));
+		Order = order;
 	}
 
 	/// <summary>
@@ -154,55 +129,25 @@ public class MarkovChain<T>
 	/// </summary>
 	/// <param name="items">The items to add to the generator.</param>
 	/// <param name="weight">The weight at which to add the items.</param>
-	public void Add(IEnumerable<T> items, int weight)
+	public void AddPhrase(ReadOnlyMemory<T> items, long weight = 1)
 	{
-		ArgumentNullException.ThrowIfNull(items);
-
-		var previous = new Queue<T>();
-		foreach (var item in items)
+		if (items.Length == 0)
 		{
-			var key = new ChainState<T>(previous);
-
-			Add(key, item, weight);
-
-			previous.Enqueue(item);
-			if (previous.Count > order)
-			{
-				previous.Dequeue();
-			}
-		}
-	}
-
-	/// <summary>
-	/// Adds the item to the generator, with the specified items preceding it.
-	/// </summary>
-	/// <param name="previous">The items preceding the item.</param>
-	/// <param name="item">The item to add.</param>
-	/// <remarks>
-	/// See <see cref="MarkovChain{T}.Add(IEnumerable{T}, T, int)"/> for remarks.
-	/// </remarks>
-	public void Add(IEnumerable<T> previous, T item)
-	{
-		ArgumentNullException.ThrowIfNull(previous);
-
-		var state = new Queue<T>(previous);
-		while (state.Count > order)
-		{
-			state.Dequeue();
+			return;
 		}
 
-		Add(new ChainState<T>(state), item, 1);
-	}
+		AddNgram(ChainState<T>.Empty, items.Span[0], weight);
 
-	/// <summary>
-	/// Adds the item to the generator, with the specified state preceding it.
-	/// </summary>
-	/// <param name="state">The state preceding the item.</param>
-	/// <param name="next">The item to add.</param>
-	/// <remarks>
-	/// See <see cref="MarkovChain{T}.Add(ChainState{T}, T, int)"/> for remarks.
-	/// </remarks>
-	public void Add(ChainState<T> state, T next) => Add(state, next, 1);
+		for (var i = 1; i < Order && i < items.Length; i++)
+		{
+			AddNgram(new ChainState<T>(items[..i]), items.Span[i], weight);
+		}
+
+		for (var i = Order; i < items.Length; i++)
+		{
+			AddNgram(new ChainState<T>(items[(i - Order)..i]), items.Span[i], weight);
+		}
+	}
 
 	/// <summary>
 	/// Adds the item to the generator, with the specified items preceding it and the specified weight.
@@ -214,11 +159,16 @@ public class MarkovChain<T>
 	/// This method does not add all of the preceding states to the generator.
 	/// Notably, the empty state is not added, unless the <paramref name="previous"/> parameter is empty.
 	/// </remarks>
-	public void Add(IEnumerable<T> previous, T item, int weight)
+	public void AddNgram(ReadOnlyMemory<T> previous, T item, long weight = 1)
 	{
 		ArgumentNullException.ThrowIfNull(previous);
 
-		Add(new ChainState<T>(previous.Take(^order..)), item, weight);
+		if (previous.Length > Order)
+		{
+			previous = previous[^Order..];
+		}
+
+		AddNgram(new ChainState<T>(previous), item, weight);
 	}
 
 	/// <summary>
@@ -236,65 +186,90 @@ public class MarkovChain<T>
 	/// of the specified state transition.  This can therefore be used to remove items from
 	/// the generator. The resulting weight will never be allowed below zero.
 	/// </remarks>
-	public virtual void Add(ChainState<T> state, T next, int weight)
+	public virtual void AddNgram(ChainState<T> state, T next, long weight = 1)
 	{
-		ArgumentNullException.ThrowIfNull(state);
+		ref var weights = ref CollectionsMarshal.GetValueRefOrAddDefault(items, state, out _);
+		weights ??= [];
 
-		var weights = items.GetOrAdd(state, _ => []);
+		ref var curWeight = ref CollectionsMarshal.GetValueRefOrAddDefault(weights, next, out _);
+		curWeight += weight;
+	}
 
-		weights.AddOrUpdate(next,
-			static (_, weight) => weight,
-			static (_, curWeigth, weight) => Math.Max(0, curWeigth + weight),
-			weight);
+	public void Include(MarkovBuilder<T> chain)
+	{
+		foreach (var state in chain.items)
+		{
+			foreach (var item in state.Value)
+			{
+				AddNgram(state.Key, item.Key, item.Value);
+			}
+		}
+	}
 
-		//if (newWeight == 0)
-		//{
-		//	weights.Remove(next);
-		//	if (weights.Count == 0)
-		//	{
-		//		items.Remove(state);
-		//	}
-		//}
-		//else
+	public void AddPhrasesParallel(IEnumerable<ReadOnlyMemory<T>> dataset, long weight = 1)
+	{
+		var builder = FromPhrasesParallel(dataset, Order, weight);
+		Include(builder);
+	}
+
+	public static MarkovBuilder<T> FromPhrasesParallel(IEnumerable<ReadOnlyMemory<T>> dataset, int order, long weight = 1)
+	{
+		return dataset
+			.AsParallel()
+			.AsUnordered()
+			//.WithDegreeOfParallelism(1)
+			.Aggregate(
+				() => new MarkovBuilder<T>(order),
+				(acc, item) => { acc.AddPhrase(item, weight); return acc; },
+				(acc, agg) => { acc.Include(agg); return acc; },
+				acc => acc
+			);
+	}
+
+	public MarkovChain<T> Build()
+	{
+		var frozenItems = items
+			.Select(weigths => KeyValuePair.Create(weigths.Key, new Weigths<T>(weigths.Value.Where(kv => kv.Value > 0))))
+			.Where(kv => kv.Value.WeightsSum > 0)
+			.ToFrozenDictionary();
+
+		return new MarkovChain<T>(frozenItems, Order);
+	}
+}
+
+/// <summary>
+/// Builds and walks interconnected states based on a weighted probability.
+/// </summary>
+/// <typeparam name="T">The type of the constituent parts of each state in the Markov chain.</typeparam>
+public class MarkovChain<T> where T : IEquatable<T>
+{
+	private readonly FrozenDictionary<ChainState<T>, Weigths<T>> _items;
+
+	/// <summary>
+	/// Initializes a new instance of the <see cref="MarkovChain{T}"/> class.
+	/// </summary>
+	/// <param name="order">Indicates the desired order of the <see cref="MarkovChain{T}"/>.</param>
+	/// <remarks>
+	/// <para>The <paramref name="order"/> of a generator indicates the depth of its internal state.  A generator
+	/// with an order of 1 will choose items based on the previous item, a generator with an order of 2
+	/// will choose items based on the previous 2 items, and so on.</para>
+	/// <para>Zero is not classically a valid order value, but it is allowed here.  Choosing a zero value has the
+	/// effect that every state is equivalent to the starting state, and so items will be chosen based on their
+	/// total frequency.</para>
+	/// </remarks>
+	internal MarkovChain(FrozenDictionary<ChainState<T>, Weigths<T>> items, int order)
+	{
+		ArgumentOutOfRangeException.ThrowIfNegative(order);
+
+		_items = items;
+		Order = order;
 	}
 
 	/// <summary>
-	/// Randomly walks the chain.
+	/// Gets the order of the chain.
 	/// </summary>
-	/// <returns>An <see cref="IEnumerable{T}"/> of the items chosen.</returns>
-	/// <remarks>Assumes an empty starting state.</remarks>
-	public IEnumerable<T> Chain() => Chain([], new Random());
+	public int Order { get; }
 
-	/// <summary>
-	/// Randomly walks the chain.
-	/// </summary>
-	/// <param name="previous">The items preceding the first item in the chain.</param>
-	/// <returns>An <see cref="IEnumerable{T}"/> of the items chosen.</returns>
-	public IEnumerable<T> Chain(IEnumerable<T> previous) => Chain(previous, new Random());
-
-	/// <summary>
-	/// Randomly walks the chain.
-	/// </summary>
-	/// <param name="seed">The seed for the random number generator, used as the random number source for the chain.</param>
-	/// <returns>An <see cref="IEnumerable{T}"/> of the items chosen.</returns>
-	/// <remarks>Assumes an empty starting state.</remarks>
-	public IEnumerable<T> Chain(int seed) => Chain([], new Random(seed));
-
-	/// <summary>
-	/// Randomly walks the chain.
-	/// </summary>
-	/// <param name="previous">The items preceding the first item in the chain.</param>
-	/// <param name="seed">The seed for the random number generator, used as the random number source for the chain.</param>
-	/// <returns>An <see cref="IEnumerable{T}"/> of the items chosen.</returns>
-	public IEnumerable<T> Chain(IEnumerable<T> previous, int seed) => Chain(previous, new Random(seed));
-
-	/// <summary>
-	/// Randomly walks the chain.
-	/// </summary>
-	/// <param name="rand">The random number source for the chain.</param>
-	/// <returns>An <see cref="IEnumerable{T}"/> of the items chosen.</returns>
-	/// <remarks>Assumes an empty starting state.</remarks>
-	public IEnumerable<T> Chain(Random rand) => Chain([], rand);
 
 	/// <summary>
 	/// Randomly walks the chain.
@@ -302,39 +277,40 @@ public class MarkovChain<T>
 	/// <param name="previous">The items preceding the first item in the chain.</param>
 	/// <param name="rand">The random number source for the chain.</param>
 	/// <returns>An <see cref="IEnumerable{T}"/> of the items chosen.</returns>
-	public IEnumerable<T> Chain(IEnumerable<T> previous, Random rand)
+	public IEnumerable<T> Chain(IEnumerable<T>? previous = default, Random? rand = default)
 	{
-		ArgumentNullException.ThrowIfNull(previous);
-		ArgumentNullException.ThrowIfNull(rand);
+		previous ??= [];
+		rand ??= new Random();
 
 		var state = new Queue<T>(previous);
 		while (true)
 		{
-			while (state.Count > order)
+			while (state.Count > Order)
 			{
 				state.Dequeue();
 			}
 
-			var key = new ChainState<T>(state);
+			var key = new ChainState<T>(state.ToArray());
 
-			var weights = GetNextStatesInternal(key);
-			if (weights == null)
+			var weightsOpt = GetNextStates(key);
+			if (weightsOpt is not { } weights)
 			{
+				// TODO Find most similar state instead of breaking
 				yield break;
 			}
 
-			var total = weights.Sum(w => w.Value);
-			var value = rand.Next(total) + 1;
+			var total = weights.WeightsSum;
+			var value = rand.NextInt64(total) + 1;
 
 			if (value > total)
 			{
 				yield break;
 			}
 
-			var currentWeight = 0;
-			foreach (var nextItem in weights)
+			long currentWeight = 0;
+			foreach (var nextItem in weights.Values)
 			{
-				currentWeight += nextItem.Value;
+				currentWeight += nextItem.Weight;
 				if (currentWeight >= value)
 				{
 					yield return nextItem.Key;
@@ -345,26 +321,22 @@ public class MarkovChain<T>
 		}
 	}
 
+
 	/// <summary>
 	/// Gets the items from the generator that follow from an empty state.
 	/// </summary>
 	/// <returns>A dictionary of the items and their weight.</returns>
-	public Dictionary<T, int>? GetInitialStates() => GetNextStates(new ChainState<T>(Enumerable.Empty<T>()));
+	public Weigths<T>? GetInitialStates() => GetNextStates(new ChainState<T>(ReadOnlyMemory<T>.Empty));
 
 	/// <summary>
 	/// Gets the items from the generator that follow from the specified items preceding it.
 	/// </summary>
 	/// <param name="previous">The items preceding the items of interest.</param>
 	/// <returns>A dictionary of the items and their weight.</returns>
-	public Dictionary<T, int>? GetNextStates(IEnumerable<T> previous)
+	public Weigths<T>? GetNextStates(IEnumerable<T> previous)
 	{
-		var state = new Queue<T>(previous);
-		while (state.Count > order)
-		{
-			state.Dequeue();
-		}
-
-		return GetNextStates(new ChainState<T>(state));
+		var state = new ChainState<T>(previous.Take(^Order..).ToArray());
+		return GetNextStates(state);
 	}
 
 	/// <summary>
@@ -372,28 +344,11 @@ public class MarkovChain<T>
 	/// </summary>
 	/// <param name="state">The state preceding the items of interest.</param>
 	/// <returns>A dictionary of the items and their weight.</returns>
-	public Dictionary<T, int>? GetNextStates(ChainState<T> state)
-	{
-		var weights = GetNextStatesInternal(state);
-		return weights != null ? new Dictionary<T, int>(weights) : null;
-	}
+	public Weigths<T>? GetNextStates(ChainState<T> state) => _items.TryGetValue(state, out var w) ? w : null;
 
 	/// <summary>
 	/// Gets all of the states that exist in the generator.
 	/// </summary>
 	/// <returns>An enumerable collection of <see cref="ChainState{T}"/> containing all of the states in the generator.</returns>
-	public virtual IEnumerable<ChainState<T>> GetStates()
-	{
-		foreach (var state in items.Keys)
-		{
-			yield return state;
-		}
-	}
-
-	/// <summary>
-	/// Gets the items from the generator that follow from the specified state preceding it without copying the values.
-	/// </summary>
-	/// <param name="state">The state preceding the items of interest.</param>
-	/// <returns>The raw dictionary of the items and their weight.</returns>
-	protected internal virtual IReadOnlyDictionary<T, int>? GetNextStatesInternal(ChainState<T> state) => items.GetValueOrDefault(state);
+	public virtual IEnumerable<ChainState<T>> GetStates() => _items.Keys;
 }

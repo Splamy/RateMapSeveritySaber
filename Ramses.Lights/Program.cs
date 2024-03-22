@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Ramses.Lights;
 
@@ -33,7 +34,7 @@ public class Program
 		var sw = new Stopwatch();
 
 		sw.Restart();
-		var dataset = await MapSelector.ReadMpack<List<List<LightEvent>>>(0);
+		var dataset = await MapSelector.ReadMpack<List<List<LightEvent>>>();
 
 		Parallel.ForEach(dataset, m =>
 		{
@@ -41,9 +42,9 @@ public class Program
 		});
 		dataset.RemoveAll(m => m.Count == 0);
 
-		Console.WriteLine("Read mpack: {0}ms", sw.Elapsed.TotalSeconds);
+		Console.WriteLine("Read mpack: {0}s", sw.Elapsed.TotalSeconds);
 
-		await Console.Out.WriteLineAsync(dataset.SelectMany(x => x).Count().ToString());
+		await Console.Out.WriteLineAsync(dataset.Sum(x => x.Count).ToString());
 
 		var tokens = new LightToken[dataset.Count][];
 
@@ -55,9 +56,13 @@ public class Program
 			// take absolute value of time and convert to invervals between each event
 
 			var lightTokens = new LightToken[m.Count];
-			var times = m
-				.GroupBy(e => float.Round(e.Time, 3))
-				.ToDictionary(x => x.Key, x => x.Count());
+			Dictionary<float, int> times = [];
+			foreach (var e in m)
+			{
+				var key = MathF.Round(e.Time, 3);
+				ref var occCnt = ref CollectionsMarshal.GetValueRefOrAddDefault(times, key, out _);
+				occCnt++;
+			}
 
 			for (int j = 0; j < m.Count - 1; j++)
 			{
@@ -66,29 +71,25 @@ public class Program
 
 				var t = nextEvent.Time - currentEvent.Time;
 
-				lightTokens[j] = new LightToken
-				{
-					Time = LightToken.CategorizeLightSpeed(t),
-					Type = currentEvent.Type,
-					Value = checked((ushort)currentEvent.Value),
-					FloatValue = currentEvent.HasFloatValue,
-					Combo = times[float.Round(currentEvent.Time, 3)] > 1,
-				};
+				lightTokens[j] = new LightToken(
+					currentEvent.Type,
+					LightToken.CategorizeLightSpeed(t),
+					checked((ushort)currentEvent.Value),
+					currentEvent.HasFloatValue,
+					times[float.Round(currentEvent.Time, 3)] > 1);
 			}
 
-			lightTokens[^1] = new LightToken
-			{
-				Time = 5,
-				Value = checked((ushort)m[^1].Value),
-				Type = m[^1].Type,
-				FloatValue = m[^1].HasFloatValue,
-				Combo = times[float.Round(m[^1].Time, 3)] > 1,
-			};
+			lightTokens[^1] = new LightToken(
+				m[^1].Type,
+				LightToken.TimeMax,
+				checked((ushort)m[^1].Value),
+				m[^1].HasFloatValue,
+				times[float.Round(m[^1].Time, 3)] > 1);
 
 			tokens[i] = lightTokens;
 		});
 
-		Console.WriteLine("Tokenized: {0}ms", sw.Elapsed.TotalSeconds);
+		Console.WriteLine("Tokenized: {0}s", sw.Elapsed.TotalSeconds);
 
 		//var model = new LightMarkov(NullLogger<LightMarkov>.Instance, 2);
 
@@ -96,11 +97,20 @@ public class Program
 		sw.Restart();
 		Console.WriteLine("Learning");
 
-		var mark = new MarkovChain<LightToken>(2);
+		var markB = MarkovBuilder<LightToken>.FromPhrasesParallel(tokens.Select(x => (ReadOnlyMemory<LightToken>)x), 2);
+		//var markB = new MarkovBuilder<LightToken>(2);
+		//foreach (var token in tokens)
+		//{
+		//	markB.AddPhrase(token);
+		//}
 
-		mark.AddParallel(tokens, 1);
+		Console.WriteLine("Learned: {0}s", sw.Elapsed.TotalSeconds);
 
-		Console.WriteLine("Learned: {0}ms", sw.Elapsed.TotalSeconds);
+		sw.Restart();
+
+		var mark = markB.Build();
+
+		Console.WriteLine("Build Model: {0}s", sw.Elapsed.TotalSeconds);
 
 		//var example = model.Walk().Take(10).ToList();
 
@@ -112,17 +122,26 @@ public class Program
 	}
 }
 
-public readonly record struct LightToken
+[StructLayout(LayoutKind.Explicit)]
+public readonly struct LightToken(byte type, byte time, ushort value, bool floatValue, bool combo) : IEquatable<LightToken>
 {
-	public static readonly LightToken ZeroLight = default;
+	public const byte TimeMax = 12;
 
-	public ushort Value { get; init; }
-	public byte Time { get; init; }
-	public byte Type { get; init; }
-	public bool FloatValue { get; init; }
-	public bool Combo { get; init; }
+	[FieldOffset(0)]
+	public readonly ulong _data;
 
-	public static byte CategorizeLightSpeed(float diff) => diff switch
+	[FieldOffset(0)]
+	public readonly ushort Value = value;
+	[FieldOffset(2)]
+	public readonly byte Time = time;
+	[FieldOffset(3)]
+	public readonly byte Type = type;
+	[FieldOffset(4)]
+	public readonly bool FloatValue = floatValue;
+	[FieldOffset(5)]
+	public readonly bool Combo = combo;
+
+	public static byte CategorizeLightSpeedV1(float diff) => diff switch
 	{
 		< 0.050f => 0,
 		< 0.100f => 1,
@@ -132,10 +151,28 @@ public readonly record struct LightToken
 		_ => 5
 	};
 
-	public enum LightType : byte
+	public static byte CategorizeLightSpeed(float diff)
 	{
-		Strobo,
-		Highlight,
-		Slow
+		if (diff < 0.001f)
+		{
+			return 0;
+		}
+
+		var log = MathF.Log2(diff * 1000 + 1);
+
+		if (log > TimeMax)
+		{
+			return TimeMax;
+		}
+
+		return (byte)log;
 	}
+
+	public static bool operator ==(LightToken left, LightToken right) => left.Equals(right);
+	public static bool operator !=(LightToken left, LightToken right) => !left.Equals(right);
+
+	public bool Equals(LightToken other) => _data == other._data;
+	public override bool Equals(object? obj) => obj is LightToken other && Equals(other);
+
+	public override int GetHashCode() => _data.GetHashCode();
 }

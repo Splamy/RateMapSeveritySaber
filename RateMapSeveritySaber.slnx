@@ -1,0 +1,18 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Testing.ipynb" />
+  </Folder>
+  <Project Path="Ramses.Lights/Ramses.Lights.csproj" />
+  <Project Path="RamsesBeatsaberPlugin/RamsesBeatsaberPlugin.csproj">
+    <Build Solution="*|x64" Project="false" />
+    <Build Solution="*|x86" Project="false" />
+  </Project>
+  <Project Path="RateMapSeveritySaber/RateMapSeveritySaber.csproj" />
+  <Project Path="Test/Test.csproj" />
+</Solution>

@@ -5,6 +5,7 @@
 
 lib/
 TestMaps/
+*.ipynb
 
 # User-specific files
 *.rsuser

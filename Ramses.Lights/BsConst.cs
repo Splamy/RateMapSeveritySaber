@@ -2,31 +2,31 @@ namespace Ramses.Lights;
 
 // https://github.com/Loloppe/ChroMapper-AutoMapper/blob/master/Items/Enumerator.cs
 
-public enum EventType : byte
+public static class EventType
 {
-	BACK = 0,
-	RING = 1,
-	LEFT = 2,
-	RIGHT = 3,
-	SIDE = 4,
+	public const byte BACK = 0;
+	public const byte RING = 1;
+	public const byte LEFT = 2;
+	public const byte RIGHT = 3;
+	public const byte SIDE = 4;
 	/// <summary>Deprecated</summary>
-	BOOST = 5,
-	LIGHT_LEFT_EXTRA_LIGHT = 6,
-	LIGHT_RIGHT_EXTRA_LIGHT = 7,
-	SPIN = 8,
-	ZOOM = 9,
-	LIGHT_LEFT_EXTRA2_LIGHT = 10,
-	LIGHT_RIGHT_EXTRA2_LIGHT = 11,
-	LEFT_ROT = 12,
-	RIGHT_ROT = 13,
+	public const byte BOOST = 5;
+	public const byte LIGHT_LEFT_EXTRA_LIGHT = 6;
+	public const byte LIGHT_RIGHT_EXTRA_LIGHT = 7;
+	public const byte SPIN = 8;
+	public const byte ZOOM = 9;
+	public const byte LIGHT_LEFT_EXTRA2_LIGHT = 10;
+	public const byte LIGHT_RIGHT_EXTRA2_LIGHT = 11;
+	public const byte LEFT_ROT = 12;
+	public const byte RIGHT_ROT = 13;
 	/// <summary>Deprecated</summary>
-	ROTATION_EARLY_LANE = 14,
+	public const byte ROTATION_EARLY_LANE = 14;
 	/// <summary>Deprecated</summary>
-	ROTATION_LATE_LANE = 15,
-	EXTRA_EVENT1 = 16,
-	EXTRA_EVENT2 = 17,
+	public const byte ROTATION_LATE_LANE = 15;
+	public const byte EXTRA_EVENT1 = 16;
+	public const byte EXTRA_EVENT2 = 17;
 	/// <summary>Deprecated</summary>
-	BPM = 100,
+	public const byte BPM = 100;
 }
 
 public enum LaserType : byte

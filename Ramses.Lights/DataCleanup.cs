@@ -19,7 +19,9 @@ public class DataCleanup
 
 		var mapDirectories = mapsDir.EnumerateDirectories().ToArray();
 
-		Parallel.ForEach(mapDirectories, dir =>
+		Parallel.ForEach(mapDirectories,
+			new ParallelOptions { MaxDegreeOfParallelism = Utils.Threads },
+			dir =>
 		{
 			Interlocked.Increment(ref processed);
 			if (processed % 100 == 0)

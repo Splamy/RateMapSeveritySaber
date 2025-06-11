@@ -1,7 +1,9 @@
 using MemoryPack;
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.IO.Compression;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -30,13 +32,15 @@ public class MapSelector
 
 		var concurrentPool = new ConcurrentBag<MemoryStream>();
 
-		var fileLock = new object();
+		Lock fileLock = new();
 		int written = 0;
 
 		using var superFile = File.Open("F:/Ramses/select.v2.events.json", FileMode.Create, FileAccess.Write, FileShare.None);
 		superFile.Write("[\n"u8);
 
-		Parallel.ForEach(selectList.Maps, x =>
+		Parallel.ForEach(selectList.Maps,
+			new ParallelOptions { MaxDegreeOfParallelism = Utils.Threads },
+			x =>
 		{
 			using var mapFile = File.OpenRead(x.Path);
 			var json = JsonSerializer.Deserialize<JsonElement>(mapFile);
@@ -86,37 +90,42 @@ public class MapSelector
 
 		Console.WriteLine("Reading events...");
 
-		ConcurrentBag<LightEvent[]> lightMaps = [];
 		int written = 0;
 
-		Parallel.ForEach(selectList.Maps, new ParallelOptions() { /*MaxDegreeOfParallelism = 1 */}, x =>
-		{
-			var w = Interlocked.Increment(ref written);
-			if (w % 100 == 0)
+		var lightMapsList = selectList.Maps
+			.AsParallel()
+			.WithDegreeOfParallelism(Utils.Threads)
+			.AsUnordered()
+			.Select(x =>
 			{
-				Console.WriteLine("Processed {0}/{1}", w, selectList.Maps.Count);
-			}
+				var w = Interlocked.Increment(ref written);
+				if (w % 100 == 0)
+				{
+					Console.WriteLine("Processed {0}/{1}", w, selectList.Maps.Count);
+				}
 
-			using var mapFile = File.OpenRead(x.Path);
-			var json = JsonSerializer.Deserialize<JsonElement>(mapFile);
-			if (!json.TryGetProperty("_events", out var events))
-				return;
+				using var mapFile = File.OpenRead(x.Path);
+				var json = JsonSerializer.Deserialize<JsonElement>(mapFile);
+				if (!json.TryGetProperty("_events", out var events))
+					return null!;
 
-			try
-			{
-				var evs = events.Deserialize<LightEvent[]>(JsonSerializerOptions)!;
-				lightMaps.Add(evs);
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine("Error reading {0}", x.Path);
-				return;
-			}
-		});
+				try
+				{
+					var evs = events.Deserialize<LightEvent[]>(JsonSerializerOptions)!;
+					evs.AsSpan().Sort((a, b) => a.Time.CompareTo(b.Time));
+					return evs;
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine("Error reading {0}", x.Path);
+					return null!;
+				}
+			})
+			.Where(x => x != null)
+			.ToArray();
 
 		using Stream superFile = File.Open("F:/Ramses/select.v2.events.mpack", FileMode.Create, FileAccess.Write, FileShare.None);
 
-		var lightMapsList = lightMaps.ToArray();
 		await MemoryPackSerializer.SerializeAsync(superFile, lightMapsList);
 	}
 
@@ -158,17 +167,26 @@ public class MapSelector
 
 	public static async Task<TAll> ReadMpack<TAll>(int? chunk = default)
 	{
+		TAll? data;
 		if (chunk.HasValue)
 		{
 			using var file = File.OpenRead($"F:/Ramses/select.v2.events.chunk{chunk.Value:000}.mpack");
-			return await MemoryPackSerializer.DeserializeAsync<TAll>(file);
+			data = await MemoryPackSerializer.DeserializeAsync<TAll>(file);
 		}
 		else
 		{
 			using var file = File.OpenRead("F:/Ramses/select.v2.events.mpack");
-			return await MemoryPackSerializer.DeserializeAsync<TAll>(file);
+			data = await MemoryPackSerializer.DeserializeAsync<TAll>(file);
 		}
 
+		// Call internal Trim Method on SharedArrayPool<T>
+
+		var poolType = Type.GetType("System.Buffers.SharedArrayPool`1")!;
+		var trimMethod = poolType.MakeGenericType(typeof(byte)).GetMethod("Trim", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)!;
+		trimMethod.Invoke(ArrayPool<byte>.Shared, []);
+		GC.Collect(2, GCCollectionMode.Aggressive);
+
+		return data!;
 	}
 
 	public static List<JsonArray> Read()
@@ -196,4 +214,6 @@ public partial struct LightEvent()
 
 	[JsonIgnore]
 	public readonly bool HasFloatValue => !float.IsNaN(FloatValue);
+
+	public override string ToString() => $"t:{Time} v:{Value} f:{FloatValue} et:{Type}";
 }

@@ -37,110 +37,100 @@ public class Program
 		var sw = new Stopwatch();
 
 		sw.Restart();
+
 		var dataset = await MapSelector.ReadMpack<List<List<LightEvent>>>();
 
-		Parallel.ForEach(dataset, m =>
-		{
-			m.RemoveAll(e => e.Type is 10 or 14 or 15 || e.Value is < 0 or > ushort.MaxValue);
-		});
-		dataset.RemoveAll(m => m.Count == 0);
-
 		Console.WriteLine("Read mpack: {0}s", sw.Elapsed.TotalSeconds);
-
-		await Console.Out.WriteLineAsync(dataset.Sum(x => x.Count).ToString());
-
-		var tokens = new LightToken[dataset.Count][];
+		Console.WriteLine("Total Maps: {0}", dataset.Count);
+		Console.WriteLine("Total Events: {0}", dataset.Sum(x => x.Count));
 
 		sw.Restart();
 
-		Parallel.ForEach(dataset.Select((m, i) => (m, i)), mi =>
-		{
-			var (m, i) = mi;
-
-			// convert to light tokens
-			// take absolute value of time and convert to invervals between each event
-
-			var lightTokens = new LightToken[m.Count];
-			Dictionary<float, int> times = [];
-			foreach (var e in m)
-			{
-				var key = MathF.Round(e.Time, 3);
-				ref var occCnt = ref CollectionsMarshal.GetValueRefOrAddDefault(times, key, out _);
-				occCnt++;
-			}
-
-			for (int j = 0; j < m.Count - 1; j++)
-			{
-				var currentEvent = m[j];
-				var nextEvent = m[j + 1];
-
-				var t = nextEvent.Time - currentEvent.Time;
-
-				lightTokens[j] = new LightToken(
-					currentEvent.Type,
-					LightToken.CategorizeLightSpeed(t),
-					checked((ushort)currentEvent.Value),
-					currentEvent.HasFloatValue,
-					times[float.Round(currentEvent.Time, 3)] > 1);
-			}
-
-			lightTokens[^1] = new LightToken(
-				m[^1].Type,
-				LightToken.TimeMax,
-				checked((ushort)m[^1].Value),
-				m[^1].HasFloatValue,
-				times[float.Round(m[^1].Time, 3)] > 1);
-
-			tokens[i] = lightTokens;
-		});
+		var tokens = Mapping.Tokenize(dataset);
 
 		Console.WriteLine("Tokenized: {0}s", sw.Elapsed.TotalSeconds);
-
-		//var model = new LightMarkov(NullLogger<LightMarkov>.Instance, 2);
-
 
 		sw.Restart();
 		Console.WriteLine("Learning");
 
-		var mark = MarkovBuilder<LightToken>.FromPhrasesParallel(tokens.Select(x => (ReadOnlyMemory<LightToken>)x), 2);
-		//var markB = new MarkovBuilder<LightToken>(2);
-		//foreach (var token in tokens)
-		//{
-		//	markB.AddPhrase(token);
-		//}
+		var mark = Mapping.Train(tokens);
 
 		Console.WriteLine("Learned: {0}s", sw.Elapsed.TotalSeconds);
 
-		sw.Restart();
+		void PrintStats()
+		{
+			Console.WriteLine("Dic Size: {0}", mark.Items.Count);
 
-		//var mark = markB.Build();
+			var mostCommonWeigth = mark.Items
+				.SelectMany(x => x.Value.Values)
+				.MaxBy(x => x.Weight);
 
-		//var mostCommonWeigth = mark.Items.SelectMany(x => x.Value.Values).MaxBy(x => x.Weight);
+			Console.WriteLine("Most Common: {0} {1}", mostCommonWeigth.Key, mostCommonWeigth.Weight);
 
-		//var uniqueTokens = tokens.SelectMany(x => x).ToHashSet();
+			var hist = mark.Items.Values
+				.GroupBy(x => x.Values.Length, y => 1)
+				.Select(x => (x.Key, Count: x.Count()))
+				.OrderByDescending(x => x.Count)
+				.Take(10)
+				.ToList();
 
-		//var uniqueTokensWithoutTime = uniqueTokens.Select(x => new LightToken(x.Type, 0, x.Value, x.FloatValue, x.Combo)).ToHashSet();
+			Console.WriteLine("Most Common Hist");
+			foreach (var (key, count) in hist)
+			{
+				Console.WriteLine("Hist: {0} {1}", key, count);
+			}
 
-		//var hist = mark.Items
-		//	.GroupBy(x => x.Value.Values.Length)
-		//	.Select(x => (x.Key, Count: x.Count()))
-		//	.OrderByDescending(x => x.Count)
-		//	.ToList();
+			var uniqueTokens = tokens
+				.SelectMany(x => x)
+				.ToHashSet();
 
-		Console.WriteLine("Build Model: {0}s", sw.Elapsed.TotalSeconds);
+			Console.WriteLine("Unique Tokens: {0}", uniqueTokens.Count);
 
-		//var example = model.Walk().Take(10).ToList();
+			var uniqueTokensWithoutTime = uniqueTokens
+				.Select(x => new LightToken(x.Type, 0, x.Value, x.StateValue, x.FloatValue, x.Combo))
+				.ToHashSet();
 
-		// json serialize and print
+			Console.WriteLine("Unique Tokens Without Time: {0}", uniqueTokensWithoutTime.Count);
 
-		//Console.WriteLine(JsonSerializer.Serialize(example));
+			var valueHist = tokens
+				.SelectMany(t => t)
+				.GroupBy(x => x.Value)
+				.Select(x => (x.Key, Count: x.Count()))
+				.OrderByDescending(x => x.Count)
+				.Take(10)
+				.ToList();
 
-		return;
+			Console.WriteLine("Most Common Tokens");
+			foreach (var (key, count) in valueHist)
+			{
+				Console.WriteLine("Hist: {0} {1}", key, count);
+			}
+		}
+
+		PrintStats();
+
+		Mapping.GenerateMap(mark);
+	}
+}
+
+[StructLayout(LayoutKind.Auto)]
+public record struct LightTokenBuilder
+{
+	public byte Type;
+	public ushort Value;
+	public byte StateVal;
+	public byte Time;
+	public bool IsCombo;
+	public bool HasFloatValue;
+
+	public readonly LightToken ToToken()
+	{
+		return new LightToken(Type, Time, Value, StateVal, HasFloatValue, IsCombo);
 	}
 }
 
 [StructLayout(LayoutKind.Explicit)]
-public readonly struct LightToken(byte type, byte time, ushort value, bool floatValue, bool combo)
+public readonly struct LightToken(byte type, byte time, ushort value, byte stateVal, bool floatValue, bool combo)
 	: IEquatable<LightToken>, IComparable<LightToken>
 {
 	public const byte TimeMax = 12;
@@ -155,8 +145,10 @@ public readonly struct LightToken(byte type, byte time, ushort value, bool float
 	[FieldOffset(3)]
 	public readonly byte Type = type;
 	[FieldOffset(4)]
-	public readonly bool FloatValue = floatValue;
+	public readonly byte StateValue = stateVal;
 	[FieldOffset(5)]
+	public readonly bool FloatValue = floatValue;
+	[FieldOffset(6)]
 	public readonly bool Combo = combo;
 
 	public static byte CategorizeLightSpeedV1(float diff) => diff switch
@@ -195,4 +187,6 @@ public readonly struct LightToken(byte type, byte time, ushort value, bool float
 	public override int GetHashCode() => _data.GetHashCode();
 
 	public int CompareTo(LightToken other) => _data.CompareTo(other._data);
+
+	public override string ToString() => $"et:{Type} t2:{Time} i:{Value} i+:{StateValue} f:{FloatValue} c:{Combo}";
 }

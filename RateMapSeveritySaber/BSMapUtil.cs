@@ -1,3 +1,5 @@
+using RateMapSeveritySaber.Parser;
+
 namespace RateMapSeveritySaber;
 
 public static class BSMapUtil

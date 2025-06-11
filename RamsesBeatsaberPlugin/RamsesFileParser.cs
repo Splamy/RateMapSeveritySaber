@@ -39,14 +39,16 @@ namespace RamsesBeatsaberPlugin
 				ScoreCache[level.levelID] = new();
 			}
 
+			var chara = difficulty.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
+
 			var levelTypes = ScoreCache[level.levelID];
 
-			if (!levelTypes.ContainsKey("yeet"))
+			if (!levelTypes.ContainsKey(chara))
 			{
-				levelTypes["yeet"] = new();
+				levelTypes[chara] = new();
 			}
 
-			var levelDifficulties = levelTypes["yeet"];
+			var levelDifficulties = levelTypes[chara];
 
 			if (levelDifficulties.TryGetValue(difficulty.difficulty, out var cachedScore))
 			{
@@ -58,9 +60,9 @@ namespace RamsesBeatsaberPlugin
 			return score;
 		}
 
-		private static BSMap LevelDataToMap(IBeatmapLevel level, IDifficultyBeatmap difficulty)
+		private static BSDifficulty LevelDataToMap(IBeatmapLevel level, IDifficultyBeatmap difficulty)
 		{
-			var map = new BSMap { Data = new JsonMap { Notes = new(), Version = "" } };
+			var map = new BSDifficulty { Data = new JsonMap { Notes = new(), Version = "" } };
 			foreach (BeatmapObjectData objectData in difficulty.beatmapData.beatmapLinesData.SelectMany(bld =>
 				bld.beatmapObjectsData))
 			{

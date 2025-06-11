@@ -1,38 +1,26 @@
 using System;
 
-namespace RateMapSeveritySaber
+namespace RateMapSeveritySaber;
+
+public readonly record struct AggregatedHit(float HitDifficulty, float ContinuousDifficulty, TimeSpan Time) : IScoredHit
 {
-	public readonly struct AggregatedHit : IScoredHit
+	public static AggregatedHit operator +(AggregatedHit a, AggregatedHit b)
 	{
-		public TimeSpan Time { get; }
-		public float HitDifficulty { get; }
-		public float ContinuousDifficulty { get; }
+		return new AggregatedHit(a.HitDifficulty + b.HitDifficulty, a.ContinuousDifficulty + b.ContinuousDifficulty, a.Time);
+	}
 
-		public AggregatedHit(float hitDifficulty, float continuousDifficulty, TimeSpan time)
-		{
-			HitDifficulty = hitDifficulty;
-			ContinuousDifficulty = continuousDifficulty;
-			Time = time;
-		}
+	public static AggregatedHit operator -(AggregatedHit a, AggregatedHit b)
+	{
+		return new AggregatedHit(a.HitDifficulty - b.HitDifficulty, a.ContinuousDifficulty - b.ContinuousDifficulty, a.Time);
+	}
 
-		public static AggregatedHit operator +(AggregatedHit a, AggregatedHit b)
-		{
-			return new AggregatedHit(a.HitDifficulty + b.HitDifficulty, a.ContinuousDifficulty + b.ContinuousDifficulty, a.Time);
-		}
+	public static AggregatedHit operator *(AggregatedHit a, float s)
+	{
+		return new AggregatedHit(a.HitDifficulty * s, a.ContinuousDifficulty * s, a.Time);
+	}
 
-		public static AggregatedHit operator -(AggregatedHit a, AggregatedHit b)
-		{
-			return new AggregatedHit(a.HitDifficulty - b.HitDifficulty, a.ContinuousDifficulty - b.ContinuousDifficulty, a.Time);
-		}
-
-		public static AggregatedHit operator *(AggregatedHit a, float s)
-		{
-			return new AggregatedHit(a.HitDifficulty * s, a.ContinuousDifficulty * s, a.Time);
-		}
-
-		public static AggregatedHit operator /(AggregatedHit a, float s)
-		{
-			return new AggregatedHit(a.HitDifficulty / s, a.ContinuousDifficulty / s, a.Time);
-		}
+	public static AggregatedHit operator /(AggregatedHit a, float s)
+	{
+		return new AggregatedHit(a.HitDifficulty / s, a.ContinuousDifficulty / s, a.Time);
 	}
 }

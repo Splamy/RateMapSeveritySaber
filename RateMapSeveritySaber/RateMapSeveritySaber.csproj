@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
-		<TargetFrameworks>netstandard2.0;netstandard2.1;net6.0</TargetFrameworks>
+		<TargetFrameworks>netstandard2.0;netstandard2.1;net9.0</TargetFrameworks>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<Authors>Splamy, TheAsuro</Authors>
 		<Company>ReSpeak</Company>
@@ -11,13 +11,22 @@
 		<PackageProjectUrl>https://github.com/Splamy/RateMapSeveritySaber</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/Splamy/RateMapSeveritySaber</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<Version>1.1.0</Version>
+		<Version>1.1.1</Version>
 		<Nullable>enable</Nullable>
-		<LangVersion>10</LangVersion>
+		<LangVersion>12</LangVersion>
+
+		<DebugType>embedded</DebugType>
+		<Deterministic>true</Deterministic>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="System.Text.Json" Version="6.0.0" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+		<PackageReference Include="PolySharp" Version="1.15.0">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Condition="'$(TargetFramework)' != 'net8.0'" Include="System.Text.Json" Version="9.0.5" />
 	</ItemGroup>
 
 </Project>

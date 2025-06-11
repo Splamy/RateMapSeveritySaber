@@ -1,19 +1,18 @@
 using System;
 
-namespace RateMapSeveritySaber
-{
-	public interface IScoredHit
-	{
-		TimeSpan Time { get; }
-		float HitDifficulty { get; }
-		float ContinuousDifficulty { get; }
-	}
+namespace RateMapSeveritySaber;
 
-	public static class IScoredHitExtensions
+public interface IScoredHit
+{
+	TimeSpan Time { get; }
+	float HitDifficulty { get; }
+	float ContinuousDifficulty { get; }
+}
+
+public static class IScoredHitExtensions
+{
+	public static float TotalDifficulty(this IScoredHit self)
 	{
-		public static float TotalDifficulty(this IScoredHit self)
-		{
-			return self.HitDifficulty + self.ContinuousDifficulty;
-		}
+		return self.HitDifficulty + self.ContinuousDifficulty;
 	}
 }

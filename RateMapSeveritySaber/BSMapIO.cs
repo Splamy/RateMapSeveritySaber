@@ -13,19 +13,19 @@ namespace RateMapSeveritySaber;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class BSMapIO
 {
-	public static List<BSMap> ReadZip(string file)
+	public static List<BSDifficulty> ReadZip(string file)
 	{
 		using var fs = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
 		return ReadZip(fs);
 	}
 
-	public static List<BSMap> ReadZip(Stream stream)
+	public static List<BSDifficulty> ReadZip(Stream stream)
 	{
 		using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
 		return ReadZip(zip);
 	}
 
-	public static List<BSMap> ReadZip(ZipArchive zip) => Read(ZipProvider(zip));
+	public static List<BSDifficulty> ReadZip(ZipArchive zip) => Read(ZipProvider(zip));
 
 	public static JsonInfo? ReadZipInfo(string file)
 	{
@@ -41,14 +41,14 @@ public class BSMapIO
 
 	public static JsonInfo? ReadZipInfo(ZipArchive zip) => ReadInfo(ZipProvider(zip));
 
-	public static List<BSMap> Read(string folder)
+	public static List<BSDifficulty> Read(string folder)
 		=> Read(FolderProvider(folder));
 
-	public static List<BSMap> Read(BsMapProvider fileProvider)
+	public static List<BSDifficulty> Read(BsMapProvider fileProvider)
 	{
 		var info = ReadInfo(fileProvider) ?? throw new Exception("Found no info file");
 
-		var maps = new List<BSMap>();
+		var maps = new List<BSDifficulty>();
 
 		for (int difficultySetIndex = 0; difficultySetIndex < info.DifficultyBeatmapSets.Length; difficultySetIndex++)
 		{
@@ -61,7 +61,7 @@ public class BSMapIO
 				var file = ReadAll(fs);
 				var map = JsonSerializer.Deserialize<JsonMap>(file);
 				if (map is null) continue;
-				maps.Add(new BSMap
+				maps.Add(new BSDifficulty
 				{
 					Info = info,
 					MapInfo = mapj,
@@ -104,7 +104,7 @@ public class BSMapIO
 }
 
 #pragma warning disable CS8618
-public class BSMap
+public class BSDifficulty
 {
 	public JsonInfo Info { get; set; }
 	public JsonInfoMap MapInfo { get; set; }

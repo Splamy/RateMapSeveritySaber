@@ -31,7 +31,7 @@ public class Hit
 		Group = group;
 	}
 
-	public static Hit FromSingle(BSMap map, JsonNote note)
+	public static Hit FromSingle(BSDifficulty map, JsonNote note)
 	{
 		return new(
 			note.Position() + .5f + note.Rotation() * -.5f,

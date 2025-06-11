@@ -5,8 +5,8 @@ namespace RateMapSeveritySaber;
 
 public static class BSMapExtensions
 {
-	public static float RealTimeToBeatTime(this BSMap map, TimeSpan time) => (float)(time.TotalMinutes * map.Info.BPM);
-	public static TimeSpan BeatTimeToRealTime(this BSMap map, float beat) => TimeSpan.FromMinutes(beat / map.Info.BPM);
+	public static float RealTimeToBeatTime(this BSDifficulty map, TimeSpan time) => (float)(time.TotalMinutes * map.Info.BPM);
+	public static TimeSpan BeatTimeToRealTime(this BSDifficulty map, float beat) => TimeSpan.FromMinutes(beat / map.Info.BPM);
 
 	// https://github.com/Kylemc1413/MappingExtensions#precision-note-placement
 	public static Vector2 Position(this JsonNote note)

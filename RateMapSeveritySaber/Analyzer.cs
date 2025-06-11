@@ -9,7 +9,7 @@ namespace RateMapSeveritySaber;
 
 public static class Analyzer
 {
-	public static SongScore AnalyzeMap(BSMap map)
+	public static SongScore AnalyzeMap(BSDifficulty map)
 	{
 		int len = (int)BSMath.Ceiling(map.Data.Notes.Max(x => (float?)x.Time) ?? 0);
 
@@ -41,7 +41,7 @@ public static class Analyzer
 		);
 	}
 
-	public static DebugSongScore? DebugMap(BSMap map)
+	public static DebugSongScore? DebugMap(BSDifficulty map)
 	{
 		int len = (int)BSMath.Ceiling(map.Data.Notes.Max(x => (float?)x.Time) ?? 0);
 
@@ -68,7 +68,7 @@ public static class Analyzer
 		};
 	}
 
-	public static ScoredClusterHit[] ProcessColor(BSMap map, NoteColor color)
+	public static ScoredClusterHit[] ProcessColor(BSDifficulty map, NoteColor color)
 	{
 		var json = map.Data.Notes.Where(n => n.Type == color).ToArray();
 		var hits = json.Select(x => Hit.FromSingle(map, x)).ToArray();

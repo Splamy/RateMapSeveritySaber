@@ -11,14 +11,14 @@ namespace Math2D
 
 #pragma warning disable CS0660
 #pragma warning disable CS0661
-	public readonly struct Vector2
+	public readonly struct Vector2(SkalTyp x, SkalTyp y)
 #pragma warning restore CS0660
 #pragma warning restore CS0661
 	{
 		private const SkalTyp HALF_PI = PI / 2;
 
-		public readonly SkalTyp X { get; }
-		public readonly SkalTyp Y { get; }
+		public readonly SkalTyp X { get; } = x;
+		public readonly SkalTyp Y { get; } = y;
 
 #if SYSTEM_DRAWING_EXTENSION
 		public readonly PointF p
@@ -38,12 +38,6 @@ namespace Math2D
 		public static readonly Vector2 Zero = new(0);
 
 		public Vector2(SkalTyp val) : this(val, val) { }
-
-		public Vector2(SkalTyp x, SkalTyp y)
-		{
-			this.X = x;
-			this.Y = y;
-		}
 
 		public static Vector2 FromRotation(float rot) => new(Sin(rot), -Cos(rot)); // TODO remove - in normal x/y system
 

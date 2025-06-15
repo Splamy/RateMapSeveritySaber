@@ -1,11 +1,11 @@
 using Math2D;
 using RateMapSeveritySaber.Parser;
-using RateMapSeveritySaber.Parser.Abstract;
+using RateMapSeveritySaber.Parser.Beatmaps;
 using System;
 
 namespace RateMapSeveritySaber;
 
-public static class BSMapExtensions
+public static class BsMapExtensions
 {
 	// https://github.com/Kylemc1413/MappingExtensions#precision-note-placement
 	public static Vector2 Position(this IBsNote note)

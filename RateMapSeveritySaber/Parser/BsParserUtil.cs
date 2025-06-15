@@ -1,8 +1,6 @@
-using RateMapSeveritySaber.Parser;
+namespace RateMapSeveritySaber.Parser;
 
-namespace RateMapSeveritySaber;
-
-public static class BSMapUtil
+public static class BsParserUtil
 {
 	public static int DifficultyNameToNumber(string name)
 	{

@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace RateMapSeveritySaber;
+namespace Test;
 
 public sealed class TimeSpanConverter : JsonConverter<TimeSpan>
 {

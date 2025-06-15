@@ -30,7 +30,7 @@ public class DataCleanup
 				Console.WriteLine("Processed {0}/{1}", processed, mapDirectories.Length);
 			}
 
-			var provider = new FolderMapProvider(dir.FullName);
+			var provider = new BsFolderMapProvider(dir.FullName);
 			var song = BsReader.Read(provider);
 
 			if (song is null)

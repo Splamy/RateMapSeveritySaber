@@ -1,7 +1,7 @@
 using Math2D;
 using System;
 
-namespace RateMapSeveritySaber;
+namespace RateMapSeveritySaber.Analyzer;
 
 public record Swing
 {

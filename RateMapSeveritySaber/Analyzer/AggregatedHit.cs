@@ -1,6 +1,6 @@
 using System;
 
-namespace RateMapSeveritySaber;
+namespace RateMapSeveritySaber.Analyzer;
 
 public readonly record struct AggregatedHit(float HitDifficulty, float ContinuousDifficulty, TimeSpan Time) : IScoredHit
 {

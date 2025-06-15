@@ -1,5 +1,4 @@
-﻿using RateMapSeveritySaber.Parser.Abstract;
-using RateMapSeveritySaber.Parser.Beatmaps;
+﻿using RateMapSeveritySaber.Parser.Beatmaps;
 using RateMapSeveritySaber.Parser.Info;
 using System;
 using System.IO;

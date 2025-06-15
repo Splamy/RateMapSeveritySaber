@@ -1,4 +1,7 @@
 using Microsoft.Win32;
+using RateMapSeveritySaber;
+using RateMapSeveritySaber.Analyzer;
+using RateMapSeveritySaber.Parser;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,7 +10,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
 
-namespace RateMapSeveritySaber;
+namespace Test;
 
 public class Program
 {
@@ -21,7 +24,7 @@ public class Program
 
 		foreach (var file in Directory.GetFiles(@"E:\_Projects\RateMapSeveritySaber\Test\TestMaps", "*.zip"))
 		{
-			maps.Add(new PlainZipMapProvider(new ZipArchive(File.OpenRead(file))));
+			maps.Add(new BsZipMapProvider(new ZipArchive(File.OpenRead(file))));
 		}
 
 		if (beatsaberPath == null)
@@ -48,7 +51,7 @@ public class Program
 				}
 
 				var sw = Stopwatch.StartNew();
-				maps.Add(new FolderMapProvider(mapPath));
+				maps.Add(new BsFolderMapProvider(mapPath));
 			}
 		}
 
@@ -57,17 +60,17 @@ public class Program
 			Console.WriteLine($"{song}:");
 
 			var sw = Stopwatch.StartNew();
-			var maps = BSMapIO.Read(song);
+			var songData = BsReader.Read(song);
 			//Console.WriteLine("Parsing: {0}ms", sw.ElapsedMilliseconds);
 
-			return maps.Select(map =>
+			return songData.Difficulties.Select<BsDifficulty, DebugSongScore>(diff =>
 			{
-				Console.Write("Level {0}: ", map.MapInfo.DifficultyRank);
+				Console.Write("Level {0}: ", diff.DifficultyRank);
 				sw.Restart();
-				var score = Analyzer.DebugMap(map);
+				var score = RamsesAnalyzer.DebugMap(diff);
 				if (score is not null)
 				{
-					score.Name = map.Info.SongName;
+					score.Name = diff.Info.SongName;
 				}
 
 				Console.Write(" Score: {0} in {1}ms", score, sw.ElapsedMilliseconds);

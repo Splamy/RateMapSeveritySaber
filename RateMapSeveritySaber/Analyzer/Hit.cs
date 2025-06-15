@@ -1,12 +1,12 @@
 using Math2D;
 using RateMapSeveritySaber.Parser;
-using RateMapSeveritySaber.Parser.Abstract;
+using RateMapSeveritySaber.Parser.Beatmaps;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static RateMapSeveritySaber.BSMapExtensions;
+using static RateMapSeveritySaber.BsMapExtensions;
 
-namespace RateMapSeveritySaber;
+namespace RateMapSeveritySaber.Analyzer;
 
 /// <summary>
 /// Note: A hit can consist of one or more notes.

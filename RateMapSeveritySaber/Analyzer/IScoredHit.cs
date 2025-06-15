@@ -1,6 +1,6 @@
 using System;
 
-namespace RateMapSeveritySaber;
+namespace RateMapSeveritySaber.Analyzer;
 
 public interface IScoredHit
 {

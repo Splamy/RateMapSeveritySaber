@@ -1,3 +1,4 @@
+using RateMapSeveritySaber.Analyzer;
 using System;
 
 namespace RateMapSeveritySaber;

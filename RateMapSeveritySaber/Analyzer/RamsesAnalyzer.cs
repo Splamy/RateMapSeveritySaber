@@ -1,15 +1,14 @@
 using Math2D;
 using RateMapSeveritySaber.Parser;
-using RateMapSeveritySaber.Parser.Abstract;
+using RateMapSeveritySaber.Parser.Beatmaps;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using static RateMapSeveritySaber.BSMapExtensions;
+using static RateMapSeveritySaber.BsMapExtensions;
 
-namespace RateMapSeveritySaber;
+namespace RateMapSeveritySaber.Analyzer;
 
-public static class Analyzer
+public static class RamsesAnalyzer
 {
 	public static SongScore AnalyzeMap(BsDifficulty map)
 	{
@@ -111,11 +110,11 @@ public static class Analyzer
 				if (timeToPreviousHit > Constants.ContinuousGroupSizeSeconds)
 				{
 					continuousDifficulty =
-						Math.Max(continuousDifficulty - ((currentGroup - lastGroup) * Constants.ContinuousDecay), 0f);
+						System.Math.Max(continuousDifficulty - ((currentGroup - lastGroup) * Constants.ContinuousDecay), 0f);
 				}
 				else
 				{
-					continuousDifficulty = Math.Min(continuousDifficulty + Constants.ContinuousBuildup, 100f);
+					continuousDifficulty = System.Math.Min(continuousDifficulty + Constants.ContinuousBuildup, 100f);
 				}
 
 				lastGroup = currentGroup;
@@ -135,8 +134,8 @@ public static class Analyzer
 			int timeIndex = (int)note.Cluster.BeatTime;
 			if (timeIndex < 0 || timeIndex >= len)
 				continue;
-			timed[timeIndex] = new AggregatedHit(Math.Max(timed[timeIndex].HitDifficulty, note.HitDifficulty),
-				Math.Max(timed[timeIndex].ContinuousDifficulty, note.ContinuousDifficulty), note.Cluster.RealTime);
+			timed[timeIndex] = new AggregatedHit(System.Math.Max(timed[timeIndex].HitDifficulty, note.HitDifficulty),
+				System.Math.Max(timed[timeIndex].ContinuousDifficulty, note.ContinuousDifficulty), note.Cluster.RealTime);
 		}
 
 		return timed;
@@ -170,7 +169,7 @@ public static class Analyzer
 		}
 
 		float scoreParts = resetSwingDist + swing + swingRelAB + swingRelAReset + swingRelBReset;
-		float timeScaled = InvExpToLin(Math.Min((float)totalHitDuration.TotalSeconds, 1));
+		float timeScaled = InvExpToLin(System.Math.Min((float)totalHitDuration.TotalSeconds, 1));
 		float score = scoreParts / timeScaled;
 		if (float.IsNaN(score) || float.IsInfinity(score))
 		{

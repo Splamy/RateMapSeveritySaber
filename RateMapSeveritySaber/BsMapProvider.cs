@@ -19,16 +19,18 @@ public abstract class BsMapProvider
 
 	protected static string NormalizeName(string name)
 	{
-		if (name.LastIndexOf('/') is var idx && idx >= 0)
+		if (name.LastIndexOf('/') is >= 0 and var idx)
 		{
 			name = name[(idx + 1)..];
 		}
 
 		return string.Equals(name, InfoJson, StringComparison.OrdinalIgnoreCase) ? InfoDat : name;
 	}
+
+	public virtual Stream? GetInfoFile() => Get(InfoDat);
 }
 
-public class PlainZipMapProvider(ZipArchive zip) : BsMapProvider
+public class BsZipMapProvider(ZipArchive zip) : BsMapProvider
 {
 	public override IEnumerable<string> Files => zip.Entries.Select(e => e.FullName);
 
@@ -36,7 +38,7 @@ public class PlainZipMapProvider(ZipArchive zip) : BsMapProvider
 		.FirstOrDefault((e) => MatchName(e.Name, file))?.Open();
 }
 
-public class FolderMapProvider(string folder) : BsMapProvider
+public class BsFolderMapProvider(string folder) : BsMapProvider
 {
 	public override IEnumerable<string> Files => Directory.GetFiles(folder, "*", SearchOption.TopDirectoryOnly);
 
@@ -51,9 +53,4 @@ public class FolderMapProvider(string folder) : BsMapProvider
 
 		return File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
 	}
-}
-
-public static class BsMapProviderExtensions
-{
-	public static Stream? GetInfoFile(this BsMapProvider provider) => provider.Get(BsMapProvider.InfoDat);
 }

@@ -1,4 +1,3 @@
-using RateMapSeveritySaber.Parser.Abstract;
 using RateMapSeveritySaber.Parser.Info;
 using System;
 using System.Collections.Generic;
@@ -25,7 +24,7 @@ public class BsReader
 		return ReadZip(zip);
 	}
 
-	public static BsSong ReadZip(ZipArchive zip) => Read(new PlainZipMapProvider(zip));
+	public static BsSong ReadZip(ZipArchive zip) => Read(new BsZipMapProvider(zip));
 
 	public static IBsInfo? ReadZipInfo(string file)
 	{
@@ -39,15 +38,15 @@ public class BsReader
 		return ReadZipInfo(zip);
 	}
 
-	public static IBsInfo? ReadZipInfo(ZipArchive zip) => ReadInfo(new PlainZipMapProvider(zip));
+	public static IBsInfo? ReadZipInfo(ZipArchive zip) => ReadInfo(new BsZipMapProvider(zip));
 
 	// Folder
 
 	public static BsSong ReadFolder(string folder)
-		=> Read(new FolderMapProvider(folder));
+		=> Read(new BsFolderMapProvider(folder));
 
 	public static IBsInfo? ReadFolderInfo(string folder)
-		=> ReadInfo(new FolderMapProvider(folder));
+		=> ReadInfo(new BsFolderMapProvider(folder));
 
 	// Generic
 

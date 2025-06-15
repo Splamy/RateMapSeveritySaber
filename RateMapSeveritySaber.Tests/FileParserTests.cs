@@ -48,8 +48,8 @@ public class FileParserTests
 
 		var difficulties = info
 			.GetDifficultyBeatmaps()
-			.OrderBy(diff => BSMapUtil.NameToCharacteristic(diff.CharacteristicName))
-			.ThenBy(diff => BSMapUtil.DifficultyNameToNumber(diff.DifficultyName))
+			.OrderBy(diff => BsParserUtil.NameToCharacteristic(diff.CharacteristicName))
+			.ThenBy(diff => BsParserUtil.DifficultyNameToNumber(diff.DifficultyName))
 			.ToList();
 
 		Assert.True(difficulties is

@@ -1,9 +1,6 @@
-using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Text.Json.Serialization;
 
-namespace RateMapSeveritySaber.Parser.Abstract;
+namespace RateMapSeveritySaber.Parser.Beatmaps;
 
 public interface IBsBeatmap
 {

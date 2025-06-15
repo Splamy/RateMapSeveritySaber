@@ -1,6 +1,6 @@
 using System;
 
-namespace RateMapSeveritySaber;
+namespace RateMapSeveritySaber.Analyzer;
 
 public readonly record struct ScoredClusterHit(Hit Cluster, float HitDifficulty, float ContinuousDifficulty) : IScoredHit
 {

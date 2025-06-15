@@ -1,4 +1,4 @@
-namespace RateMapSeveritySaber;
+namespace RateMapSeveritySaber.Analyzer;
 
 public static class Constants
 {

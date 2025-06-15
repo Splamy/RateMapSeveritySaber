@@ -1,6 +1,6 @@
 using Math2D;
+using RateMapSeveritySaber.Parser;
 using RateMapSeveritySaber.Parser.Abstract;
-using RateMapSeveritySaber.Parser.V2;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,11 +20,11 @@ public class Hit
 	public float BeatTime { get; }
 	public TimeSpan RealTime { get; }
 	public bool IsDot => Dir.LengthSQ < Epsilon;
-	public List<JsonNote> Group { get; }
+	public List<IBsNote> Group { get; }
 
 	public static readonly TimeSpan Threshold = TimeSpan.FromMilliseconds(5);
 
-	public Hit(Vector2 start, Vector2 end, float time, TimeSpan realTime, List<JsonNote> group)
+	public Hit(Vector2 start, Vector2 end, float time, TimeSpan realTime, List<IBsNote> group)
 	{
 		Start = start;
 		End = end;
@@ -33,13 +33,13 @@ public class Hit
 		Group = group;
 	}
 
-	public static Hit FromSingle(BSDifficulty map, JsonNote note)
+	public static Hit FromSingle(BsDifficulty map, IBsNote note)
 	{
 		return new(
 			note.Position() + .5f + note.Rotation() * -.5f,
 			note.Position() + .5f + note.Rotation() * .5f,
-			note.Time,
-			map.BeatTimeToRealTime(note.Time),
+			note.Beat,
+			map.BeatTimeToRealTime(note.Beat),
 			[note]
 		);
 	}
@@ -62,7 +62,7 @@ public class Hit
 			.Select(x => x.Dir.Normalized)
 			.Aggregate(Vector2.Zero, (a, b) => a + b);
 
-		// Checking if the average of all block directions go in the same direction as 
+		// Checking if the average of all block directions go in the same direction as
 		// our main hit vector.
 		// If not just swap the direction.
 		var angle = Vector2.GetAngle(mainHit, avgDir);

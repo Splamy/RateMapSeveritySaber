@@ -11,17 +11,22 @@ namespace RateMapSeveritySaber;
 
 public static class Analyzer
 {
-	public static SongScore AnalyzeMap(BSDifficulty map)
+	public static SongScore AnalyzeMap(BsDifficulty map)
 	{
-		int len = (int)BSMath.Ceiling(map.Data.Notes.Max(x => (float?)x.Time) ?? 0);
+		var notes = map.Beatmap.Notes.ToList();
+		if (notes.Count == 0 || notes.All(x => x.Beat == 0))
+		{
+			return SongScore.Empty;
+		}
 
+		int len = (int)BSMath.Ceiling(notes.Max(x => x.Beat));
 		if (len == 0)
 		{
 			return SongScore.Empty;
 		}
 
-		var scoredRed = ProcessColor(map, NoteColor.Red);
-		var scoredBlue = ProcessColor(map, NoteColor.Blue);
+		var scoredRed = ProcessColor(map, notes, NoteColor.Red);
+		var scoredBlue = ProcessColor(map, notes, NoteColor.Blue);
 
 		var timedRed = ConvertToFixedTimeBlocks(scoredRed, len);
 		var timedBlue = ConvertToFixedTimeBlocks(scoredBlue, len);
@@ -43,36 +48,42 @@ public static class Analyzer
 		);
 	}
 
-	public static DebugSongScore? DebugMap(BSDifficulty map)
+	public static DebugSongScore? DebugMap(BsDifficulty map)
 	{
-		int len = (int)BSMath.Ceiling(map.Data.Notes.Max(x => (float?)x.Time) ?? 0);
-
-		if (len == 0)
+		var notes = map.Beatmap.Notes.ToList();
+		if (notes.Count == 0 || notes.All(x => x.Beat == 0))
 		{
-			//throw new InvalidOperationException("Invalid Map");
 			return null;
 		}
 
-		var timedRed = ProcessColor(map, NoteColor.Red);
-		var timedBlue = ProcessColor(map, NoteColor.Blue);
+		int len = (int)BSMath.Ceiling(notes.Max(x => x.Beat));
+		if (len == 0)
+		{
+			return null;
+		}
 
-		DebugHitScore[] DebugHits(IEnumerable<ScoredClusterHit> arr) => arr.Select(x => { var d = new DebugHitScore(); d.Set(x); return d; }).ToArray();
+		var timedRed = ProcessColor(map, notes, NoteColor.Red);
+		var timedBlue = ProcessColor(map, notes, NoteColor.Blue);
 
 		var debugRed = DebugHits(timedRed);
 		var debugBlue = DebugHits(timedBlue);
 
 		return new DebugSongScore
 		{
-			Name = map.Info.SongName,
-			DifficultyName = map.MapInfo.Difficulty,
-			DataRed = debugRed,
-			DataBlue = debugBlue,
+			Name = map.Info.SongName, DifficultyName = map.Difficulty.DifficultyName, DataRed = debugRed, DataBlue = debugBlue,
 		};
+
+		DebugHitScore[] DebugHits(IEnumerable<ScoredClusterHit> arr) => arr.Select(x =>
+		{
+			var d = new DebugHitScore();
+			d.Set(x);
+			return d;
+		}).ToArray();
 	}
 
-	public static ScoredClusterHit[] ProcessColor(BSDifficulty map, NoteColor color)
+	public static ScoredClusterHit[] ProcessColor(BsDifficulty map, IReadOnlyList<IBsNote> notes, NoteColor color)
 	{
-		var json = map.Data.Notes.Where(n => n.Type == color).ToArray();
+		var json = notes.Where(n => n.Type == color).ToArray();
 		var hits = json.Select(x => Hit.FromSingle(map, x)).ToArray();
 		var clustered = ClusterNotes(hits);
 		var scored = AnalyzeNotes(clustered);
@@ -99,12 +110,14 @@ public static class Analyzer
 			{
 				if (timeToPreviousHit > Constants.ContinuousGroupSizeSeconds)
 				{
-					continuousDifficulty = Math.Max(continuousDifficulty - ((currentGroup - lastGroup) * Constants.ContinuousDecay), 0f);
+					continuousDifficulty =
+						Math.Max(continuousDifficulty - ((currentGroup - lastGroup) * Constants.ContinuousDecay), 0f);
 				}
 				else
 				{
 					continuousDifficulty = Math.Min(continuousDifficulty + Constants.ContinuousBuildup, 100f);
 				}
+
 				lastGroup = currentGroup;
 			}
 

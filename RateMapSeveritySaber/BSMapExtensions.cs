@@ -1,18 +1,14 @@
 using Math2D;
 using RateMapSeveritySaber.Parser;
 using RateMapSeveritySaber.Parser.Abstract;
-using RateMapSeveritySaber.Parser.V2;
 using System;
 
 namespace RateMapSeveritySaber;
 
 public static class BSMapExtensions
 {
-	public static float RealTimeToBeatTime(this BSDifficulty map, TimeSpan time) => (float)(time.TotalMinutes * map.Info.BPM);
-	public static TimeSpan BeatTimeToRealTime(this BSDifficulty map, float beat) => TimeSpan.FromMinutes(beat / map.Info.BPM);
-
 	// https://github.com/Kylemc1413/MappingExtensions#precision-note-placement
-	public static Vector2 Position(this JsonNote note)
+	public static Vector2 Position(this IBsNote note)
 		=> new (ExtendedPositionToRealPosition(note.X), ExtendedPositionToRealPosition(note.Y));
 
 	private static float ExtendedPositionToRealPosition(int num)
@@ -21,7 +17,7 @@ public static class BSMapExtensions
 	private static readonly float Sqrt2 = BSMath.Sqrt(2f) / 2;
 
 	// https://github.com/Kylemc1413/MappingExtensions#360-degree-note-rotation
-	public static Vector2 Rotation(this JsonNote note)
+	public static Vector2 Rotation(this IBsNote note)
 	{
 		return note.Direction switch
 		{

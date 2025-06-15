@@ -1,4 +1,4 @@
-﻿using BS_Utils.Utilities;
+using BS_Utils.Utilities;
 using IPA;
 using System;
 using UnityEngine.SceneManagement;
@@ -6,7 +6,6 @@ using static RamsesBeatsaberPlugin.Logger;
 
 namespace RamsesBeatsaberPlugin
 {
-	// ReSharper disable once ClassNeverInstantiated.Global
 	public class RamsesPlugin : IBeatSaberPlugin
 	{
 		public string Name => "RaMSeS";

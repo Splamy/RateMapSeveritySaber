@@ -23,6 +23,7 @@ public abstract class BsMapProvider
 		{
 			name = name[(idx + 1)..];
 		}
+
 		return string.Equals(name, InfoJson, StringComparison.OrdinalIgnoreCase) ? InfoDat : name;
 	}
 }
@@ -30,20 +31,26 @@ public abstract class BsMapProvider
 public class PlainZipMapProvider(ZipArchive zip) : BsMapProvider
 {
 	public override IEnumerable<string> Files => zip.Entries.Select(e => e.FullName);
+
 	public override Stream? Get(string file) => zip.Entries
 		.FirstOrDefault((e) => MatchName(e.Name, file))?.Open();
 }
 
 public class FolderMapProvider(string folder) : BsMapProvider
 {
-	public override IEnumerable<string> Files => Directory.GetFiles(folder, "*", SearchOption.AllDirectories);
-	public override Stream? Get(string file) {
-		var path = Path.Combine(folder, file);
-		if (File.Exists(path))
-			return File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-		else
+	public override IEnumerable<string> Files => Directory.GetFiles(folder, "*", SearchOption.TopDirectoryOnly);
+
+	public override Stream? Get(string file)
+	{
+		var realName = Files.FirstOrDefault(f => MatchName(f, file));
+		if (realName is null)
 			return null;
-	} 
+		var path = Path.Combine(folder, realName);
+		if (!File.Exists(path))
+			return null;
+
+		return File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+	}
 }
 
 public static class BsMapProviderExtensions

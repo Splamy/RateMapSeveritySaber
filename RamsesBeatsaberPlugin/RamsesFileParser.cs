@@ -1,7 +1,6 @@
 using RateMapSeveritySaber;
 using RateMapSeveritySaber.Parser;
 using RateMapSeveritySaber.Parser.Abstract;
-using RateMapSeveritySaber.Parser.V2;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -60,9 +59,9 @@ namespace RamsesBeatsaberPlugin
 			return score;
 		}
 
-		private static BSDifficulty LevelDataToMap(IBeatmapLevel level, IDifficultyBeatmap difficulty)
+		private static BsDifficulty LevelDataToMap(IBeatmapLevel level, IDifficultyBeatmap difficulty)
 		{
-			var map = new BSDifficulty { Data = new JsonMap { Notes = new(), Version = "" } };
+			var map = new BsDifficulty { Beatmap = new JsonMapV2 { Notes = new(), Version = "" } };
 			foreach (BeatmapObjectData objectData in difficulty.beatmapData.beatmapLinesData.SelectMany(bld =>
 				bld.beatmapObjectsData))
 			{
@@ -72,7 +71,7 @@ namespace RamsesBeatsaberPlugin
 				case LongNoteData _:
 					break;
 				case NoteData noteData:
-					map.Data.Notes.Add(new JsonNote
+					map.Beatmap.Notes.Add(new JsonNote
 					{
 						Direction = (NoteDir)(int)noteData.cutDirection,
 						Beat = noteData.time,
@@ -88,14 +87,14 @@ namespace RamsesBeatsaberPlugin
 				}
 			}
 
-			map.Info = new JsonInfo
+			map.InfoV2 = new JsonInfo
 			{
 				SongFilename = "",
 				SongName = level.songName,
 				BPM = level.beatsPerMinute,
 				SongTimeOffset = level.songTimeOffset
 			};
-			map.Info.DifficultyBeatmapSets = level.beatmapLevelData.difficultyBeatmapSets.Select(
+			map.InfoV2.DifficultyBeatmapSets = level.beatmapLevelData.difficultyBeatmapSets.Select(
 				iDifficultyBeatmapSet =>
 				{
 					return new JsonInfoMapSets

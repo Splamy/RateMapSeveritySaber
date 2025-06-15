@@ -13,6 +13,7 @@
     <Build Solution="*|x64" Project="false" />
     <Build Solution="*|x86" Project="false" />
   </Project>
+  <Project Path="RateMapSeveritySaber.Tests/RateMapSeveritySaber.Tests.csproj" Id="a7134e76-3c0a-4c98-b4ba-4f037daa50f4" />
   <Project Path="RateMapSeveritySaber/RateMapSeveritySaber.csproj" />
   <Project Path="Test/Test.csproj" />
 </Solution>

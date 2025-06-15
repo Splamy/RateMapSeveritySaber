@@ -12,13 +12,13 @@ using System.Text.Json.Serialization;
 
 namespace RateMapSeveritySaber.Parser.Beatmaps;
 
-public class BsMapV3 : IBsMap
+public class BsBeatmapV3 : IBsBeatmap
 {
-	IEnumerable<IBsNote> IBsMap.Notes => Notes;
-	IEnumerable<IBsChains> IBsMap.Chains => BurstSliders;
-	IEnumerable<IBsArcs> IBsMap.Arcs => Sliders;
-	IEnumerable<IBsObstacle> IBsMap.Obstacles => Obstacles;
-	IEnumerable<IBsBomb> IBsMap.Bombs => Bombs;
+	IEnumerable<IBsNote> IBsBeatmap.Notes => Notes;
+	IEnumerable<IBsChains> IBsBeatmap.Chains => BurstSliders;
+	IEnumerable<IBsArcs> IBsBeatmap.Arcs => Sliders;
+	IEnumerable<IBsObstacle> IBsBeatmap.Obstacles => Obstacles;
+	IEnumerable<IBsBomb> IBsBeatmap.Bombs => Bombs;
 
 	[JsonPropertyName("version")]
 	public required string Version { get; set; }

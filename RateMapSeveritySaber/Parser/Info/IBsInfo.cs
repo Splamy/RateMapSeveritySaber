@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace RateMapSeveritySaber.Parser.Info;
 
@@ -8,8 +9,10 @@ public interface IBsInfo
 	string Version { get; }
 	string SongName { get; }
 	float Bpm { get; }
+	JsonObject? CustomData { get; }
 
 	string SongFilename { get; }
+	string? SongPreviewFilename { get; }
 	string? CoverImageFilename { get; }
 
 	IEnumerable<IBsDifficulty> GetDifficultyBeatmaps();

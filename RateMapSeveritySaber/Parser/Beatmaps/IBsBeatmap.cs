@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace RateMapSeveritySaber.Parser.Abstract;
 
-public interface IBsMap
+public interface IBsBeatmap
 {
 	public string Version { get; }
 

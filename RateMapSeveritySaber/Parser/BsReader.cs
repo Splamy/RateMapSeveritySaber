@@ -78,19 +78,6 @@ public class BsReader
 	{
 		using var fs = fileProvider.GetInfoFile();
 		if (fs is null) return null;
-		var file = ReadAll(fs);
-		return BsParser.ParseInfo(new MemoryStream(file));
-	}
-
-	private static byte[] ReadAll(Stream stream)
-	{
-		int len;
-		try { len = (int)stream.Length; }
-		catch { len = 8192; }
-
-		using var mem = new MemoryStream(len);
-		stream.CopyTo(mem);
-		mem.Seek(0, SeekOrigin.Begin);
-		return mem.ToArray();
+		return BsParser.ParseInfo(fs);
 	}
 }

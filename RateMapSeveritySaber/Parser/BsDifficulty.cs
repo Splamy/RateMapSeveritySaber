@@ -11,7 +11,7 @@ public class BsDifficulty
 {
 	public required IBsInfo Info { get; set; }
 	public required IBsDifficulty Difficulty { get; set; }
-	public required IBsMap Beatmap { get; set; }
+	public required IBsBeatmap Beatmap { get; set; }
 
 	public MapCharacteristic Characteristic => BSMapUtil.NameToCharacteristic(Difficulty.CharacteristicName);
 	public int DifficultyRank => BSMapUtil.DifficultyNameToNumber(Difficulty.DifficultyName);

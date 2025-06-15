@@ -13,13 +13,13 @@ using System.Text.Json.Serialization;
 
 namespace RateMapSeveritySaber.Parser.Beatmaps;
 
-public class BsMapV4 : IBsMap
+public class BsBeatmapV4 : IBsBeatmap
 {
-	IEnumerable<IBsNote> IBsMap.Notes => Notes.Select(note => new BsNoteV4Internal(this, note));
-	IEnumerable<IBsChains> IBsMap.Chains => Chains.Select(chain => new BsChainV4Internal(this, chain));
-	IEnumerable<IBsArcs> IBsMap.Arcs => Arcs.Select(arc => new BsArcV4Internal(this, arc));
-	IEnumerable<IBsObstacle> IBsMap.Obstacles => Obstacles.Select(obstacle => new BsObstacleV4Internal(this, obstacle));
-	IEnumerable<IBsBomb> IBsMap.Bombs => Bombs.Select(bomb => new BsBombV4Internal(this, bomb));
+	IEnumerable<IBsNote> IBsBeatmap.Notes => Notes.Select(note => new BsNoteV4Internal(this, note));
+	IEnumerable<IBsChains> IBsBeatmap.Chains => Chains.Select(chain => new BsChainV4Internal(this, chain));
+	IEnumerable<IBsArcs> IBsBeatmap.Arcs => Arcs.Select(arc => new BsArcV4Internal(this, arc));
+	IEnumerable<IBsObstacle> IBsBeatmap.Obstacles => Obstacles.Select(obstacle => new BsObstacleV4Internal(this, obstacle));
+	IEnumerable<IBsBomb> IBsBeatmap.Bombs => Bombs.Select(bomb => new BsBombV4Internal(this, bomb));
 
 	[JsonPropertyName("version")]
 	public required string Version { get; set; }
@@ -87,10 +87,10 @@ public class BsNoteDataV4
 	public int AngleOffset { get; set; }
 }
 
-internal class BsNoteV4Internal(BsMapV4 map, BsNoteV4 note) : IBsNote
+internal class BsNoteV4Internal(BsBeatmapV4 beatmap, BsNoteV4 note) : IBsNote
 {
 	public float Beat => note.Beat;
-	private BsNoteDataV4 NoteData => map.NotesData[note.Index];
+	private BsNoteDataV4 NoteData => beatmap.NotesData[note.Index];
 	public int X => NoteData.X;
 	public int Y => NoteData.Y;
 	public NoteColor Type => NoteData.Color;
@@ -123,10 +123,10 @@ public class BsBombDataV4
 	public int Y { get; set; }
 }
 
-internal class BsBombV4Internal(BsMapV4 map, BsBombV4 bomb) : IBsBomb
+internal class BsBombV4Internal(BsBeatmapV4 beatmap, BsBombV4 bomb) : IBsBomb
 {
 	public float Beat => bomb.Beat;
-	private BsBombDataV4 BombData => map.BombsData[bomb.Index];
+	private BsBombDataV4 BombData => beatmap.BombsData[bomb.Index];
 	public int X => BombData.X;
 	public int Y => BombData.Y;
 }
@@ -165,9 +165,9 @@ public class BsObstacleDataV4
 	public int Height { get; set; }
 }
 
-internal class BsObstacleV4Internal(BsMapV4 map, BsObstacleV4 obstacle) : IBsObstacle
+internal class BsObstacleV4Internal(BsBeatmapV4 beatmap, BsObstacleV4 obstacle) : IBsObstacle
 {
-	private BsObstacleDataV4 ObstacleData => map.ObstaclesData[obstacle.Index];
+	private BsObstacleDataV4 ObstacleData => beatmap.ObstaclesData[obstacle.Index];
 	public float Beat => obstacle.Beat;
 	public float TailBeat => obstacle.Beat + ObstacleData.Duration;
 	public int X => ObstacleData.X;
@@ -216,11 +216,11 @@ public class BsArcDataV4
 	public ArcMidAnchorMode MidAnchorMode { get; set; }
 }
 
-internal class BsArcV4Internal(BsMapV4 map, BsArcV4 arc) : IBsArcs
+internal class BsArcV4Internal(BsBeatmapV4 beatmap, BsArcV4 arc) : IBsArcs
 {
-	private BsArcDataV4 ArcData => map.ArcsData[arc.Index];
-	private BsNoteDataV4 HeadNote => map.NotesData[arc.HeadNoteIndex];
-	private BsNoteDataV4 TailNote => map.NotesData[arc.TailNoteIndex];
+	private BsArcDataV4 ArcData => beatmap.ArcsData[arc.Index];
+	private BsNoteDataV4 HeadNote => beatmap.NotesData[arc.HeadNoteIndex];
+	private BsNoteDataV4 TailNote => beatmap.NotesData[arc.TailNoteIndex];
 
 	public float Beat => arc.HeadBeat;
 	public int X => HeadNote.X;
@@ -276,10 +276,10 @@ public class BsChainDataV4
 	public float SquishFactor { get; set; }
 }
 
-internal class BsChainV4Internal(BsMapV4 map, BsChainV4 chain) : IBsChains
+internal class BsChainV4Internal(BsBeatmapV4 beatmap, BsChainV4 chain) : IBsChains
 {
-	private BsChainDataV4 ChainData => map.ChainsData[chain.Index];
-	private BsNoteDataV4 NoteData => map.NotesData[chain.HeadNoteIndex];
+	private BsChainDataV4 ChainData => beatmap.ChainsData[chain.Index];
+	private BsNoteDataV4 NoteData => beatmap.NotesData[chain.HeadNoteIndex];
 
 	public float Beat => chain.Beat;
 	public NoteColor Color => NoteData.Color;

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 // ReSharper disable CollectionNeverUpdated.Global
@@ -15,6 +16,9 @@ public class BsInfoV4 : IBsInfo
 {
 	[JsonPropertyName("version")]
 	public required string Version { get; set; }
+
+	[JsonPropertyName("customData")]
+	public JsonObject? CustomData { get; set; }
 
 	[JsonPropertyName("song")]
 	public required BsSongInfoV4 Song { get; set; }

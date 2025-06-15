@@ -10,19 +10,19 @@ namespace RateMapSeveritySaber.Parser;
 
 public static class BsParser
 {
-	public static IBsMap ParseMap(Stream stream)
+	public static IBsBeatmap ParseMap(Stream stream)
 	{
 		var jsonElement = JsonSerializer.Deserialize<JsonElement>(stream);
 		return ParseMapInternal(jsonElement);
 	}
 
-	public static async Task<IBsMap> ParseMapAsync(Stream stream)
+	public static async Task<IBsBeatmap> ParseMapAsync(Stream stream)
 	{
 		var jsonElement = await JsonSerializer.DeserializeAsync<JsonElement>(stream);
 		return ParseMapInternal(jsonElement);
 	}
 
-	private static IBsMap ParseMapInternal(JsonElement jsonElement)
+	private static IBsBeatmap ParseMapInternal(JsonElement jsonElement)
 	{
 		string? version = null;
 		if (jsonElement.TryGetProperty("version", out var version1))
@@ -39,17 +39,17 @@ public static class BsParser
 
 		if (version.StartsWith("2."))
 		{
-			return jsonElement.Deserialize<BsMapV2>()!;
+			return jsonElement.Deserialize<BsBeatmapV2>()!;
 		}
 
 		if (version.StartsWith("3."))
 		{
-			return jsonElement.Deserialize<BsMapV3>()!;
+			return jsonElement.Deserialize<BsBeatmapV3>()!;
 		}
 
 		if (version.StartsWith("4."))
 		{
-			return jsonElement.Deserialize<BsMapV4>()!;
+			return jsonElement.Deserialize<BsBeatmapV4>()!;
 		}
 
 		throw new NotSupportedException($"Unknown map version: {version}");

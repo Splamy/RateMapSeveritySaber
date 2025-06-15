@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 // ReSharper disable CollectionNeverUpdated.Global
@@ -18,6 +19,9 @@ public class BsInfoV2 : IBsInfo
 {
 	[JsonPropertyName("_version")]
 	public required string Version { get; set; }
+
+	[JsonPropertyName("_customData")]
+	public JsonObject? CustomData { get; set; }
 
 	[JsonPropertyName("_songName")]
 	public required string SongName { get; set; }
@@ -48,6 +52,8 @@ public class BsInfoV2 : IBsInfo
 
 	[JsonPropertyName("_difficultyBeatmapSets")]
 	public List<BsDifficultyBeatmapSetV2> DifficultyBeatmapSets { get; set; } = [];
+
+	string? IBsInfo.SongPreviewFilename => null;
 
 	public IEnumerable<IBsDifficulty> GetDifficultyBeatmaps() => DifficultyBeatmapSets
 		.SelectMany(set => set.DifficultyBeatmaps

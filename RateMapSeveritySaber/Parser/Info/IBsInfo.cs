@@ -13,10 +13,10 @@ public interface IBsInfo
 
 	string SongFilename { get; }
 	string? SongPreviewFilename { get; }
+	string? AudioDataFilename { get; }
 	string? CoverImageFilename { get; }
 
 	IEnumerable<IBsDifficulty> GetDifficultyBeatmaps();
-	IEnumerable<BsFileInfo> RequiredFiles();
 }
 
 public record struct BsFileInfo(string FileName, BsFileType Type);

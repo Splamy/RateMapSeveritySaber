@@ -5,7 +5,7 @@ using System;
 
 namespace RateMapSeveritySaber;
 
-public static class BsMapExtensions
+public static class AnalyzerExtensions
 {
 	// https://github.com/Kylemc1413/MappingExtensions#precision-note-placement
 	public static Vector2 Position(this IBsNote note)

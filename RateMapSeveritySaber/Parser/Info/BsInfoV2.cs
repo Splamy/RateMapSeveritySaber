@@ -53,28 +53,12 @@ public class BsInfoV2 : IBsInfo
 	[JsonPropertyName("_difficultyBeatmapSets")]
 	public List<BsDifficultyBeatmapSetV2> DifficultyBeatmapSets { get; set; } = [];
 
-	string? IBsInfo.SongPreviewFilename => null;
+	string? IBsInfo.SongPreviewFilename => SongFilename;
+	string? IBsInfo.AudioDataFilename => null; // Not supported in this version
 
 	public IEnumerable<IBsDifficulty> GetDifficultyBeatmaps() => DifficultyBeatmapSets
 		.SelectMany(set => set.DifficultyBeatmaps
 			.Select(diff => new BsDifficultyInternalV2(set, diff)));
-
-	public IEnumerable<BsFileInfo> RequiredFiles()
-	{
-		foreach (var diffSet in DifficultyBeatmapSets)
-		{
-			foreach (var diff in diffSet.DifficultyBeatmaps)
-			{
-				yield return new BsFileInfo(diff.BeatmapFilename, BsFileType.Beatmap);
-			}
-		}
-
-		yield return new BsFileInfo(SongFilename, BsFileType.Audio);
-		if (!string.IsNullOrEmpty(CoverImageFilename))
-		{
-			yield return new BsFileInfo(CoverImageFilename, BsFileType.Image);
-		}
-	}
 }
 
 [DebuggerDisplay("{BeatmapCharacteristicName} ({DifficultyBeatmaps.Count} maps)")]
@@ -94,7 +78,7 @@ public class BsDifficultyV2
 	public required string Difficulty { get; set; }
 
 	[JsonPropertyName("_difficultyRank")]
-	public float DifficultyRank { get; set; }
+	public int DifficultyRank { get; set; }
 
 	[JsonPropertyName("_beatmapFilename")]
 	public required string BeatmapFilename { get; set; }

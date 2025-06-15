@@ -44,38 +44,10 @@ public class BsInfoV4 : IBsInfo
 	string IBsInfo.SongName => Song.Title;
 	float IBsInfo.Bpm => Audio.Bpm;
 	string IBsInfo.SongFilename => Audio.SongFilename;
+	string? IBsInfo.AudioDataFilename => Audio.AudioDataFilename;
 	string? IBsInfo.CoverImageFilename => CoverImageFilename;
 
 	public IEnumerable<IBsDifficulty> GetDifficultyBeatmaps() => DifficultyBeatmaps;
-
-	public IEnumerable<BsFileInfo> RequiredFiles()
-	{
-		foreach (var diff in DifficultyBeatmaps)
-		{
-			yield return new BsFileInfo(diff.BeatmapFilename, BsFileType.Beatmap);
-			if (!string.IsNullOrEmpty(diff.LightshowFilename))
-			{
-				yield return new BsFileInfo(diff.LightshowFilename, BsFileType.Lightmap);
-			}
-		}
-
-		yield return new BsFileInfo(Audio.SongFilename, BsFileType.Audio);
-
-		if (!string.IsNullOrEmpty(Audio.AudioDataFilename))
-		{
-			yield return new BsFileInfo(Audio.AudioDataFilename, BsFileType.AudioMetadata);
-		}
-
-		if (!string.IsNullOrEmpty(SongPreviewFilename) && SongPreviewFilename != Audio.SongFilename)
-		{
-			yield return new BsFileInfo(SongPreviewFilename, BsFileType.Audio);
-		}
-
-		if (!string.IsNullOrEmpty(CoverImageFilename))
-		{
-			yield return new BsFileInfo(CoverImageFilename, BsFileType.Image);
-		}
-	}
 }
 
 public class BsSongInfoV4

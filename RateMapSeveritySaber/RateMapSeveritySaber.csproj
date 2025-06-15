@@ -6,12 +6,13 @@
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<Authors>Splamy, TheAsuro</Authors>
 		<Company>ReSpeak</Company>
+        <IsPackable>true</IsPackable>
 		<PackageId>Splamy.RateMapSeveritySaber</PackageId>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/Splamy/RateMapSeveritySaber</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/Splamy/RateMapSeveritySaber</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<Version>2.0.0</Version>
+		<Version>2.0.3</Version>
 		<Nullable>enable</Nullable>
 		<LangVersion>12</LangVersion>
 

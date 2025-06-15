@@ -4,7 +4,7 @@ using RateMapSeveritySaber.Parser.Beatmaps;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static RateMapSeveritySaber.BsMapExtensions;
+using static RateMapSeveritySaber.AnalyzerExtensions;
 
 namespace RateMapSeveritySaber.Analyzer;
 

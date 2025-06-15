@@ -1,3 +1,7 @@
+using RateMapSeveritySaber.Parser.Info;
+using System;
+using System.Collections.Generic;
+
 namespace RateMapSeveritySaber.Parser;
 
 public static class BsParserUtil
@@ -56,5 +60,31 @@ public static class BsParserUtil
 			MapCharacteristic.Lightshow => "Lightshow",
 			MapCharacteristic.Unknown or _ => "Unknown",
 		};
+	}
+
+	public static IEnumerable<BsFileInfo> GetRequiredFiles(this IBsInfo bsInfo)
+	{
+		Dictionary<string, BsFileInfo> files = new(StringComparer.OrdinalIgnoreCase);
+
+		Add(BsMapProvider.InfoDat, BsFileType.Info);
+		foreach (var diff in bsInfo.GetDifficultyBeatmaps())
+		{
+			Add(diff.BeatmapFilename, BsFileType.Beatmap);
+			Add(diff.LightshowFilename, BsFileType.Lightmap);
+		}
+		Add(bsInfo.SongFilename, BsFileType.Audio);
+		Add(bsInfo.AudioDataFilename, BsFileType.AudioMetadata);
+		Add(bsInfo.SongPreviewFilename, BsFileType.Audio);
+		Add(bsInfo.CoverImageFilename, BsFileType.Image);
+
+		return files.Values;
+
+		void Add(string? file, BsFileType type)
+		{
+			if (!string.IsNullOrEmpty(file) && file != null && !files.ContainsKey(file))
+			{
+				files.Add(file, new BsFileInfo(file, type));
+			}
+		}
 	}
 }
